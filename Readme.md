@@ -44,78 +44,124 @@
 
 <h1>Plugin Reference API</h1>
 <h2>Methods</h2>
-googleplay:login() --login
-googleplay:logout() --logout
-googleplay:showSettings() --show settings screen
-googleplay:showLeaderboard(leaderboardId) --show leaderboard screen
-googleplay:reportScore(leaderboardId, score) --post score to service
-googleplay:showAchievements() --show achievements screen
-googleplay:reportAchievement(achId [, numSteps]) --achievement unlocked or progressed by specified amount of steps of total defined steps
-googleplay:loadAchievements() --retrieve all defined achievemenets
-googleplay:loadScores(leaderboardId [,timespan, participants, maxResults]) --retrieve all scores for specific leaderboard ina specific timespan for specific participans
-googleplay:autoMatch(minPlayers, maxPlayers) --create a quick game between randomly selected players
-googleplay:invitePlayers(minPlayers, maxPlayers) --allow user to invite players to a game
-googleplay:joinRoom(invitationId) --joins the game you've been invited to
-googleplay:showInvitations() --show screen for managing invitations
-googleplay:showWaitingRoom(minPlayers) --show waiting room before the game with the list of players
-googleplay:sendTo(playerId, data, isReliable) --send data to specific user by id
-googleplay:sendToAll(data, isReliable) -- send to all users
-googleplay:getCurrentPlayer() --get your current user name
-googleplay:getAllPlayers() --retrieve information (id and name) for all users involved in game
+<ul>
+<li>googleplay:login() --login</li>
+<li>googleplay:logout() --logout</li>
+<li>googleplay:showSettings() --show settings screen</li>
+<li>googleplay:showLeaderboard(leaderboardId) --show leaderboard screen</li>
+<li>googleplay:reportScore(leaderboardId, score) --post score to service</li>
+<li>googleplay:showAchievements() --show achievements screen</li>
+<li>googleplay:reportAchievement(achId [, numSteps]) --achievement unlocked or progressed by specified amount of steps of total defined steps</li>
+<li>googleplay:loadAchievements() --retrieve all defined achievemenets</li>
+<li>googleplay:loadScores(leaderboardId [,timespan, participants, maxResults]) --retrieve all scores for specific leaderboard ina specific timespan for specific participans</li>
+<li>googleplay:autoMatch(minPlayers, maxPlayers) --create a quick game between randomly selected players</li>
+<li>googleplay:invitePlayers(minPlayers, maxPlayers) --allow user to invite players to a game</li>
+<li>googleplay:joinRoom(invitationId) --joins the game you've been invited to</li>
+<li>googleplay:showInvitations() --show screen for managing invitations</li>
+<li>googleplay:showWaitingRoom(minPlayers) --show waiting room before the game with the list of players</li>
+<li>googleplay:sendTo(playerId, data, isReliable) --send data to specific user by id</li>
+<li>googleplay:sendToAll(data, isReliable) -- send to all users</li>
+<li>googleplay:getCurrentPlayer() --get your current user name</li>
+<li>googleplay:getAllPlayers() --retrieve information (id and name) for all users involved in game</li>
+</ul>
 
 <h2>Properties</h2>
-GooglePlay.UNLOCKED --achievement state unlocked
-GooglePlay.REVEALED --achievement state available to user
-GooglePlay.HIDDEN   --achievement state unknown to user 
-
-GooglePlay.ALL_TIME --leaderboard timespan all time
-GooglePlay.WEEK     --leaderboard timespan week
-GooglePlay.TODAY    --leaderboard timespan today
-
-GooglePlay.FRIENDS  --leaderboard participants
-GooglePlay.ALL_PLAYERS --leaderboard participants
-
+<ul>
+<li>GooglePlay.UNLOCKED --achievement state unlocked</li>
+<li>GooglePlay.REVEALED --achievement state available to user</li>
+<li>GooglePlay.HIDDEN   --achievement state unknown to user </li>
+</ul>
+<ul>
+<li>GooglePlay.ALL_TIME --leaderboard timespan all time</li>
+<li>GooglePlay.WEEK     --leaderboard timespan week</li>
+<li>GooglePlay.TODAY    --leaderboard timespan today</li>
+</ul>
+<ul>
+<li>GooglePlay.FRIENDS  --leaderboard participants</li>
+<li>GooglePlay.ALL_PLAYERS --leaderboard participants</li>
+</ul>
 <h2>Events</h2>
 
 <h3>Game Events</h3>
-Event.DATA_RECEIVED
-	event.sender
-	event.data
-Event.GAME_STARTED
-Event.REPORT_ACHIEVEMENT_COMPLETE
-	event.achievementId
-Event.LOAD_ACHIEVEMENTS_COMPLETE
-Event.REPORT_SCORE_COMPLETE
-Event.LOAD_SCORES_COMPLETE
+<ul>
+<li>Event.DATA_RECEIVED
+<ul>
+	<li>event.sender</li>
+	<li>event.data</li>
+</ul>
+</li>
+<li>Event.GAME_STARTED</li>
+<li>Event.REPORT_ACHIEVEMENT_COMPLETE
+<ul>
+	<li>event.achievementId</li>
+</ul>
+</li>
+<li>Event.LOAD_ACHIEVEMENTS_COMPLETE</li>
+<li>Event.REPORT_SCORE_COMPLETE</li>
+<li>Event.LOAD_SCORES_COMPLETE</li>
+</ul>
 
 <h3>Autorization Events</h3>
-Event.LOGIN_ERROR
-Event.LOGIN_COMPLETE
+<ul>
+<li>Event.LOGIN_ERROR</li>
+<li>Event.LOGIN_COMPLETE</li>
+</ul>
 
 <h3>Room Events</h3>
-Event.DISCONNECTED_FROM_ROOM
-	event.roomId
-Event.ROOM_CREATED
-	event.roomId
-Event.LEFT_ROOM
-	event.roomId
-Event.ROOM_CONNECTED
-	event.roomId
-Event.CONNECTED_TO_ROOM
-	event.roomId
-Event.ROOM_CONNECTING
-	event.roomId
-Event.ROOM_AUTO_MATCHING
-	event.roomId
-Event.JOINED_ROOM
-	event.roomId
-Event.INVITATION_RECEIVED
-	event.invitationId (can be used to connect to room)
+<ul>
+<li>Event.DISCONNECTED_FROM_ROOM
+<ul>
+	<li>event.roomId</li>
+</ul>
+</li>
+<li>Event.ROOM_CREATED
+<ul>
+	<li>event.roomId</li>
+</ul>
+</li>
+<li>Event.LEFT_ROOM
+<ul>
+	<li>event.roomId</li>
+</ul>
+</li>
+<li>Event.ROOM_CONNECTED
+<ul>
+	<li>event.roomId</li>
+</ul>
+</li>
+<li>Event.CONNECTED_TO_ROOM
+<ul>
+	<li>event.roomId</li>
+</ul>
+</li>
+<li>Event.ROOM_CONNECTING
+<ul>
+	<li>event.roomId</li>
+</ul>
+</li>
+<li>Event.ROOM_AUTO_MATCHING
+<ul>
+	<li>event.roomId</li>
+</ul>
+</li>
+<li>Event.JOINED_ROOM
+<ul>
+	<li>event.roomId</li>
+</ul>
+</li>
+<li>Event.INVITATION_RECEIVED
+<ul>
+	<li>event.invitationId (can be used to connect to room)</li>
+</ul>
+</li>
+</ul>
 
 <h3>Peer Events</h3>
-Event.PEER_INVITED
-Event.PEER_JOINED
-Event.PEER_DISCONNECTED
-Event.PEER_CONNECTED
-Event.PEER_LEFT
-Event.PEER_DECLINED
+<ul>
+<li>Event.PEER_INVITED</li>
+<li>Event.PEER_JOINED</li>
+<li>Event.PEER_DISCONNECTED</li>
+<li>Event.PEER_CONNECTED</li>
+<li>Event.PEER_LEFT</li>
+<li>Event.PEER_DECLINED</li>
+</ul>
