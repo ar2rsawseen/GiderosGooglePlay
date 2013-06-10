@@ -3,12 +3,13 @@
 
 #include <gglobal.h>
 #include <gevent.h>
+#include <string>
 
 typedef struct gms_Achievement
 {
-	const char *id;
-	const char *name;
-	const char *description;
+	std::string id;
+	std::string name;
+	std::string description;
 	int status;
 	int lastUpdate;
 	int currentSteps;
@@ -17,7 +18,8 @@ typedef struct gms_Achievement
 
 typedef struct gms_Achievements
 {
-	std::vector<gms_Achievement> achievements;
+	int count;
+	const char *values[10];
 } gms_Achievements;
 
 typedef struct gms_Player
@@ -28,9 +30,9 @@ typedef struct gms_Player
 
 typedef struct gms_Score
 {
-	const char *rank;
-	const char *score;
-	const char *name;
+	std::string rank;
+	std::string score;
+	std::string name;
 	int timestamp;
 } gms_Score;
 
@@ -38,7 +40,8 @@ typedef struct gms_Leaderboard
 {
 	const char *id;
 	const char *name;
-	std::vector<gms_Score> scores;
+	int count;
+	const char *values[10];
 } gms_Leaderboard;
 
 typedef struct gms_SimpleEvent

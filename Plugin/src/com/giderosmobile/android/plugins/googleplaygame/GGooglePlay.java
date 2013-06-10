@@ -87,6 +87,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	}
 	
 	public static void onActivityResult(int request, int response, Intent data) {
+		Log.d("GiderosPlay", "onActivityResult");
 		 if(mHelper != null)
 			mHelper.onActivityResult(request, response, data);
 		 if (request == RC_INVITATION_INBOX) {
@@ -380,12 +381,19 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     }
     
     static public Object getAllPlayers(){
-    	Bundle players = new Bundle();
-    	for (Participant p : mParticipants) {
-		    players.putString("id", p.getParticipantId());
-		    players.putString("name", p.getDisplayName());
-		}
-    	return players;
+    	SparseArray<Bundle> arr = new SparseArray<Bundle>();
+    	if(mParticipants != null )
+    	{
+    		int i = 1;
+    		for (Participant p : mParticipants) {
+        		Bundle bundle = new Bundle();
+        		bundle.putString("id", p.getParticipantId());
+        		bundle.putString("name", p.getDisplayName());
+    			arr.put(i, bundle);
+    			i++;
+    		}
+    	}
+    	return arr;
     }
     
     static public void updateRoom(Room room) {
@@ -448,7 +456,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 					map.putString("id", ach.getAchievementId());
 					map.putString("description", ach.getDescription());
 					map.putString("name", ach.getName());
-					map.putInt("lastUpdate", (int)ach.getLastUpdatedTimestamp()/1000);
+					map.putInt("lastUpdate", (int)(ach.getLastUpdatedTimestamp()/1000));
 					map.putInt("status", ach.getState()); //0-unlocked, 1-revealed, 2-hidden
 					if(ach.getType() == Achievement.TYPE_INCREMENTAL)
 					{
@@ -481,7 +489,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 					map.putString("rank", l.getDisplayRank());
 					map.putString("score", l.getDisplayScore());
 					map.putString("name", l.getScoreHolderDisplayName());
-					map.putInt("timestamp", (int)l.getTimestampMillis()/1000);
+					map.putInt("timestamp", (int)(l.getTimestampMillis()/1000));
 					lscores.put(i, map);
 				}
 				GGooglePlay.onLeaderboardScoresLoaded(leaderboardId, leaderboardName, lscores, sData);
@@ -543,6 +551,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 			return;  
 		}
 		currentRoom = room;
+		updateRoom(room);
 		if (sData != 0)
 			GGooglePlay.onRoomCreated(room.getRoomId(), sData);
 	}

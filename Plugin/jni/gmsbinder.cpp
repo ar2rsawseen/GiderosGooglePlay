@@ -339,23 +339,22 @@ private:
 		}
 		else if (type == GMS_LOAD_ACHIEVEMENTS_COMPLETE_EVENT)
         {
-            /*gms_Achievements *event2 = (gms_Achievements*)event;
+            gms_Achievements *event2 = (gms_Achievements*)event;
             
 			lua_newtable(L);
-			gms_Achievement *ach = &event2->achievements[0];
 			
-			int i = 0;
-			while (ach->id)
-			{							
+			for (int i = 0; i < event2->count; ++i)
+			{					
+				gms_Achievement *ach = (gms_Achievement*)event2->values[i];
 				lua_newtable(L);
 				
-				lua_pushstring(L, ach->id);
+				lua_pushstring(L, ach->id.c_str());
 				lua_setfield(L, -2, "id");
 	
-				lua_pushstring(L, ach->name);
+				lua_pushstring(L, ach->name.c_str());
 				lua_setfield(L, -2, "name");
 				
-				lua_pushstring(L, ach->description);
+				lua_pushstring(L, ach->description.c_str());
 				lua_setfield(L, -2, "description");
 	
 				lua_pushnumber(L, ach->status);
@@ -370,12 +369,9 @@ private:
 				lua_pushnumber(L, ach->totalSteps);
 				lua_setfield(L, -2, "totalSteps");
 				
-				i++;
 				lua_rawseti(L, -2, i + 1);
-				
-				++ach;
 			}
-			lua_setfield(L, -2, "achievements");*/
+			lua_setfield(L, -2, "achievements");
         }
 		else if (type == GMS_LOAD_SCORES_COMPLETE_EVENT)
         {
@@ -387,32 +383,28 @@ private:
 			lua_pushstring(L, event2->name);
 			lua_setfield(L, -2, "name");
             
-			/*lua_newtable(L);
-			gms_Score *score = &event2->scores[0];
+			lua_newtable(L);
 			
-			int i = 0;
-			while (score->rank)
-			{							
+			for (int i = 0; i < event2->count; ++i)
+			{				
+				gms_Score *score = (gms_Score*)event2->values[i];
 				lua_newtable(L);
 				
-				lua_pushstring(L, score->rank);
+				lua_pushstring(L, score->rank.c_str());
 				lua_setfield(L, -2, "rank");
 	
-				lua_pushstring(L, score->score);
+				lua_pushstring(L, score->score.c_str());
 				lua_setfield(L, -2, "score");
 				
-				lua_pushstring(L, score->name);
+				lua_pushstring(L, score->name.c_str());
 				lua_setfield(L, -2, "name");
 	
 				lua_pushnumber(L, score->timestamp);
 				lua_setfield(L, -2, "timestamp");
 				
-				i++;
 				lua_rawseti(L, -2, i + 1);
-				
-				++score;
 			}
-			lua_setfield(L, -2, "scores");*/
+			lua_setfield(L, -2, "scores");
         }
 
 		lua_call(L, 2, 0);

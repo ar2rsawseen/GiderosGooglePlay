@@ -96,9 +96,30 @@
 	<li>event.achievementId</li>
 </ul>
 </li>
-<li>Event.LOAD_ACHIEVEMENTS_COMPLETE</li>
+<li>Event.LOAD_ACHIEVEMENTS_COMPLETE
+<ul>
+	<li>event.achievements</li>
+	<li>event.achievements[].id</li>
+	<li>event.achievements[].name</li>
+	<li>event.achievements[].description</li>
+	<li>event.achievements[].status</li>
+	<li>event.achievements[].currentSteps</li>
+	<li>event.achievements[].totalSteps</li>
+	<li>event.achievements[].lastUpdate</li>
+</ul>
+</li>
 <li>Event.REPORT_SCORE_COMPLETE</li>
-<li>Event.LOAD_SCORES_COMPLETE</li>
+<li>Event.LOAD_SCORES_COMPLETE
+<ul>
+	<li>event.name</li>
+	<li>event.leaderboardId</li>
+	<li>event.scores</li>
+	<li>event.scores[].name</li>
+	<li>event.scores[].timestamp</li>
+	<li>event.scores[].score</li>
+	<li>event.scores[].rank</li>
+</ul>
+</li>
 </ul>
 
 <h3>Autorization Events</h3>

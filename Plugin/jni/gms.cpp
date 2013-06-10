@@ -134,11 +134,6 @@ public:
 		env->DeleteLocalRef(jId);
 	}
 	
-	void onSignInFailed()
-	{
-		gevent_EnqueueEvent(gid_, callback_s, GMS_LOGIN_ERROR_EVENT, NULL, 1, this);
-	}
-	
 	void showInvitations()
 	{
 		JNIEnv *env = g_getJNIEnv();
@@ -190,7 +185,7 @@ public:
 		env->DeleteLocalRef(jdata);
 	}
 	
-	const char* mapGetStr(const char *str, jobject jsubobj)
+	std::string mapGetStr(const char *str, jobject jsubobj)
 	{
 		JNIEnv *env = g_getJNIEnv();
 		//get value
@@ -199,8 +194,10 @@ public:
 		env->DeleteLocalRef(jStr);
 	
 		const char *retVal = env->GetStringUTFChars(jretStr, NULL);
+		std::string result = retVal;
+		env->ReleaseStringUTFChars(jretStr, retVal);
 
-		return retVal;
+		return result;
 	}
 	
 	int mapGetInt(const char *str, jobject jsubobj)
@@ -228,7 +225,7 @@ public:
 		for (int i = 0; i < size; i++) {
 			jobject jsubobj = env->CallObjectMethod(jmapobj, env->GetMethodID(clsSparse, "valueAt", "(I)Ljava/lang/Object;"), (jint)i);
 			
-			gms_Player gplayer = {this->mapGetStr("id", jsubobj), this->mapGetStr("name", jsubobj)};
+			gms_Player gplayer = {this->mapGetStr("id", jsubobj).c_str(), this->mapGetStr("name", jsubobj).c_str()};
 			
 			player.push_back(gplayer);
 			
@@ -261,9 +258,6 @@ public:
 			
 			env->DeleteLocalRef(jsubobj);
 		}
-		
-		gms_Achievement param = {NULL, NULL, NULL, 0, 0, 0, 0};
-		achievements.push_back(param);
 	}
 	
 	void map2score(jobject jmapobj)
@@ -286,9 +280,19 @@ public:
 			
 			env->DeleteLocalRef(jsubobj);
 		}
-		
-		gms_Score param = {NULL, NULL, NULL, 0};
-		scores.push_back(param);
+	}
+	
+	std::string MyGetStringUTFChars(JNIEnv *env, jstring jstr)
+	{
+		const char *str = env->GetStringUTFChars(jstr, NULL);
+		std::string result = str;
+		env->ReleaseStringUTFChars(jstr, str);
+		return result;
+	}
+	
+	void onSignInFailed()
+	{
+		gevent_EnqueueEvent(gid_, callback_s, GMS_LOGIN_ERROR_EVENT, NULL, 1, this);
 	}
 	
 	void onSignInSucceeded()
@@ -317,33 +321,52 @@ public:
 	void onAchievementsLoaded(jobject jAch)
 	{
 		JNIEnv *env = g_getJNIEnv();
-		//this->map2achievement(jAch);
+		this->map2achievement(jAch);
 		
-		/*size_t structSize = sizeof(gms_Achievements);
-		size_t dataSize = achievements.size();
+		size_t size = sizeof(gms_Achievements);
+		int count = (int)achievements.size();
 		
-		gms_Achievement *ach = &achievements[0];
-		
-		while(ach->id)
+		for (std::size_t i = 0; i < achievements.size(); ++i)
 		{
-			dataSize += sizeof(ach);
-			++ach;
+			gms_Achievement e = (gms_Achievement)achievements[i];
+			size += sizeof(gms_Achievement);
+			size += e.id.size() + 1;
+			size += e.name.size() + 1;
+			size += e.description.size() + 1;
 		}
-
-		gms_Achievements *event = (gms_Achievements*)malloc(structSize + dataSize);
 		
-		ach = &achievements[0];
-		while(ach->id)
-		{
-			gms_Achievement ach2 = {ach->id, ach->name, ach->description, ach->status, ach->lastUpdate, ach->currentSteps, ach->totalSteps};
-			event->achievements.push_back(ach2);
-			++ach;
-		}*/
-
-		/*event->achievements.reserve(achievements.size());
-		copy(achievements.begin(),achievements.end(),back_inserter(event->achievements));*/
+		// allocate it
+		gms_Achievements *event = (gms_Achievements*)malloc(size);
 		
-		gevent_EnqueueEvent(gid_, callback_s, GMS_LOAD_ACHIEVEMENTS_COMPLETE_EVENT, NULL, 1, this);
+		// and copy the data into it
+		char *ptr = (char*)event + sizeof(gms_Achievements);
+		
+		event->count = count;
+		
+		for (std::size_t i = 0; i < achievements.size(); ++i)
+		{	
+			gms_Achievement *e = (gms_Achievement*)gevent_CreateEventStruct3(
+			sizeof(gms_Achievement),
+			offsetof(gms_Achievement, id), achievements[i].id.c_str(),
+			offsetof(gms_Achievement, name), achievements[i].name.c_str(),
+			offsetof(gms_Achievement, description), achievements[i].description.c_str());
+		
+			e->status = achievements[i].status;
+			e->lastUpdate = achievements[i].lastUpdate;
+			e->currentSteps = achievements[i].currentSteps;
+			e->totalSteps = achievements[i].totalSteps;
+			
+			size_t size = sizeof(achievements[i]);
+			size += achievements[i].id.size() + 1;
+			size += achievements[i].name.size() + 1;
+			size += achievements[i].description.size() + 1;
+			
+			memcpy(ptr, e, size);
+			event->values[i] = ptr;
+			ptr += size;
+		}
+		
+		gevent_EnqueueEvent(gid_, callback_s, GMS_LOAD_ACHIEVEMENTS_COMPLETE_EVENT, event, 1, this);
 	}
 	
 	void onLeaderboardScoresLoaded(jstring jId, jstring jName, jobject jScores)
@@ -351,38 +374,59 @@ public:
 		JNIEnv *env = g_getJNIEnv();
 		this->map2score(jScores);
 		
-		const char *id = env->GetStringUTFChars(jId, NULL);
-		const char *name = env->GetStringUTFChars(jName, NULL);
+		size_t size = sizeof(gms_Leaderboard);
+		int count = (int)scores.size();
 		
-		size_t structSize = sizeof(gms_Leaderboard);
-		size_t dataSize = sizeof(scores);
-		
-		/*gms_Score *score = &scores[0];
-		
-		while(score->rank)
+		for (std::size_t i = 0; i < scores.size(); ++i)
 		{
-			dataSize += sizeof(score);
-			++score;
-		}*/
-
-		gms_Leaderboard *event = (gms_Leaderboard*)gevent_CreateEventStruct2(
-			structSize + dataSize,
-			offsetof(gms_Leaderboard, id), id,
-			offsetof(gms_Leaderboard, name), name
-		);
+			gms_Score e = (gms_Score)scores[i];
+			size += sizeof(gms_Score);
+			size += e.rank.size() + 1;
+			size += e.score.size() + 1;
+			size += e.name.size() + 1;
+		}
+		
+		std::string id = MyGetStringUTFChars(env, jId);
+		std::string name = MyGetStringUTFChars(env, jName);
+		
+		size += id.size() + 1;
+		size += name.size() + 1;
+		
+		// allocate it
+		gms_Leaderboard *event = (gms_Leaderboard*)malloc(size);
+		
+		// and copy the data into it
+		char *ptr = (char*)event + sizeof(gms_Leaderboard);
+		
+		strcpy(ptr, id.c_str());
+		event->id = ptr;
+		ptr += id.size() + 1;
+		
+		strcpy(ptr, name.c_str());
+		event->name = ptr;
+		ptr += name.size() + 1;
+		
+		event->count = count;
+		
+		for (std::size_t i = 0; i < scores.size(); ++i)
+		{	
+			gms_Score *e = (gms_Score*)gevent_CreateEventStruct3(
+			sizeof(gms_Score),
+			offsetof(gms_Score, rank), scores[i].rank.c_str(),
+			offsetof(gms_Score, score), scores[i].score.c_str(),
+			offsetof(gms_Score, name), scores[i].name.c_str());
+		
+			e->timestamp = scores[i].timestamp;
 			
-		/*score = &scores[0];
-		while(score->rank)
-		{
-			gms_Score score2 = {score->rank, score->score, score->name, score->timestamp};
-			event->scores.push_back(score2);
-			++score;
-		}*/
-		/*event->scores.reserve(scores.size());
-		copy(scores.begin(),scores.end(),back_inserter(event->scores));*/
-		
-		env->ReleaseStringUTFChars(jId, id);
-		env->ReleaseStringUTFChars(jName, name);
+			size_t size = sizeof(scores[i]);
+			size += scores[i].rank.size() + 1;
+			size += scores[i].score.size() + 1;
+			size += scores[i].name.size() + 1;
+			
+			memcpy(ptr, e, size);
+			event->values[i] = ptr;
+			ptr += size;
+		}
 		
 		gevent_EnqueueEvent(gid_, callback_s, GMS_LOAD_SCORES_COMPLETE_EVENT, event, 1, this);
 	}
