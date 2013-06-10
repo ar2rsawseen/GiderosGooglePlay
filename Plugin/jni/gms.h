@@ -19,7 +19,7 @@ typedef struct gms_Achievement
 typedef struct gms_Achievements
 {
 	int count;
-	const char *values[10];
+	const char **values;
 } gms_Achievements;
 
 typedef struct gms_Player
@@ -41,7 +41,7 @@ typedef struct gms_Leaderboard
 	const char *id;
 	const char *name;
 	int count;
-	const char *values[10];
+	const char **values;
 } gms_Leaderboard;
 
 typedef struct gms_SimpleEvent

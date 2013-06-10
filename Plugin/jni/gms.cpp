@@ -343,6 +343,7 @@ public:
 		
 		event->count = count;
 		
+		event->values = new const char*[count];
 		for (std::size_t i = 0; i < achievements.size(); ++i)
 		{	
 			gms_Achievement *e = (gms_Achievement*)gevent_CreateEventStruct3(
@@ -407,6 +408,7 @@ public:
 		ptr += name.size() + 1;
 		
 		event->count = count;
+		event->values = new const char*[count];
 		
 		for (std::size_t i = 0; i < scores.size(); ++i)
 		{	
