@@ -91,6 +91,7 @@ extern "C" {
 G_API void gms_init();
 G_API void gms_cleanup();
 
+G_API bool gms_isAvailable();
 G_API void gms_login();
 G_API void gms_logout();
 G_API void gms_showSettings();

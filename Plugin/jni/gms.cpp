@@ -44,6 +44,12 @@ public:
 		
 		gevent_RemoveEventsWithGid(gid_);
 	}
+	
+	bool isAvailable()
+	{
+		JNIEnv *env = g_getJNIEnv();
+		return (bool)env->CallStaticBooleanMethod(cls_, env->GetStaticMethodID(cls_, "isAvailable", "()Z"));
+	}
 		
 	void login()
 	{
@@ -777,6 +783,11 @@ void gms_cleanup()
 {
 	delete s_gms;
 	s_gms = NULL;
+}
+
+bool gms_isAvailable()
+{
+	return s_gms->isAvailable();
 }
 
 void gms_login()

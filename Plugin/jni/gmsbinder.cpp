@@ -111,6 +111,11 @@ public:
 		gms_cleanup();
     }
 	
+	bool isAvailable()
+	{
+		return gms_isAvailable();
+	}
+	
 	void login()
 	{
 		gms_login();
@@ -436,6 +441,14 @@ static GooglePlay *getInstance(lua_State* L, int index)
 	return gms;
 }
 
+static int isAvailable(lua_State *L)
+{
+	GooglePlay *gms = getInstance(L, 1);
+	bool result = gms->isAvailable();
+	lua_pushboolean(L, result);
+    return 1;
+}
+
 static int login(lua_State *L)
 {
 	GooglePlay *gms = getInstance(L, 1);
@@ -703,6 +716,7 @@ static int getAllPlayers(lua_State *L)
 static int loader(lua_State *L)
 {
 	const luaL_Reg functionlist[] = {
+        {"isAvailable", isAvailable},
         {"login", login},
         {"logout", logout},
         {"showSettings", showSettings},

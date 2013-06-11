@@ -12,6 +12,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseArray;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.games.GamesActivityResultCodes;
 import com.google.android.gms.games.GamesClient;
 import com.google.android.gms.games.achievement.Achievement;
@@ -206,6 +208,15 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     static public void onDestroy()
     {
     	cleanup(); 
+    }
+    
+    static public boolean isAvailable(){
+    	int result = GooglePlayServicesUtil.isGooglePlayServicesAvailable(sActivity.get());
+    	if(result == ConnectionResult.SUCCESS)
+    	{
+    		return true;
+    	}
+    	return false;
     }
     
     static public void login(){
