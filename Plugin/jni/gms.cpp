@@ -120,6 +120,14 @@ public:
 		env->DeleteLocalRef(jId);
 	}
 	
+	void loadPlayerScores(const char *id, int span, int collection, int maxResults )
+	{
+		JNIEnv *env = g_getJNIEnv();
+		jstring jId = env->NewStringUTF(id);
+		env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "loadPlayerScores", "(Ljava/lang/String;III)V"), jId, (jint)span, (jint)collection, (jint)maxResults);
+		env->DeleteLocalRef(jId);
+	}
+	
 	void autoMatch(int minPlayers, int maxPlayers)
 	{
 		JNIEnv *env = g_getJNIEnv();
@@ -833,6 +841,11 @@ void gms_loadAchievements()
 void gms_loadScores(const char *id, int span, int collection, int maxResults)
 {
 	s_gms->loadScores(id, span, collection, maxResults);
+}
+
+void gms_loadPlayerScores(const char *id, int span, int collection, int maxResults)
+{
+	s_gms->loadPlayerScores(id, span, collection, maxResults);
 }
 
 void gms_autoMatch(int minPlayers, int maxPlayers)

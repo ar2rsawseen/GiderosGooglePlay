@@ -295,6 +295,11 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     		mHelper.getGamesClient().loadTopScores(sInstance, id, span, collection, maxResults);
     }
     
+    static public void loadPlayerScores(String id, int span, int collection, int maxResults ){
+    	if(mHelper.isSignedIn())
+    		mHelper.getGamesClient().loadPlayerCenteredScores(sInstance, id, span, collection, maxResults);
+    }
+    
    
     static public void autoMatch(int minPlayers, int maxPlayers) {
     	if(mHelper.isSignedIn())

@@ -101,6 +101,7 @@ G_API void gms_showAchievements();
 G_API void gms_reportAchievement(const char *id, int steps);
 G_API void gms_loadAchievements();
 G_API void gms_loadScores(const char *id, int span, int collection, int maxResults);
+G_API void gms_loadPlayerScores(const char *id, int span, int collection, int maxResults);
 G_API void gms_autoMatch(int minPlayers, int maxPlayers);
 G_API void gms_invitePlayers(int minPlayers, int maxPlayers);
 G_API void gms_joinRoom(const char* id);

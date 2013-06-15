@@ -160,6 +160,11 @@ public:
 	{
 		gms_loadScores(id, span, collection, maxResults);
 	}
+		
+	void loadPlayerScores(const char *id, int span, int collection, int maxResults)
+	{
+		gms_loadPlayerScores(id, span, collection, maxResults);
+	}
 	
 	void autoMatch(int minPlayers, int maxPlayers)
 	{
@@ -583,6 +588,30 @@ static int loadScores(lua_State* L)
 	return 0;
 }
 
+static int loadPlayerScores(lua_State* L)
+{
+	GooglePlay *gms = getInstance(L, 1);
+
+    int span = 2;
+	int collection = 0;
+    int maxEntries = 25; // Default
+
+	const char *id = luaL_checkstring(L, 2);
+
+	if (!lua_isnoneornil(L, 3))
+		span = luaL_checktimescope(L, 3);
+
+    if (!lua_isnoneornil(L, 4))
+   		collection = luaL_checkplayerscope(L, 4);
+
+    if (!lua_isnoneornil(L, 5))
+   		maxEntries= luaL_checknumber(L, 5);
+
+    gms->loadPlayerScores(id, span, collection, maxEntries);
+
+	return 0;
+}
+
 static int autoMatch(lua_State *L)
 {
 	GooglePlay *gms = getInstance(L, 1);
@@ -726,6 +755,7 @@ static int loader(lua_State *L)
         {"reportAchievement", reportAchievement},
         {"loadAchievements", loadAchievements},
         {"loadScores", loadScores},
+        {"loadPlayerScores", loadPlayerScores},
         {"autoMatch", autoMatch},
         {"invitePlayers", invitePlayers},
         {"joinRoom", joinRoom},
