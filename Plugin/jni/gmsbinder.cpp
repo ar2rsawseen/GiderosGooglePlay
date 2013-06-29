@@ -355,28 +355,27 @@ private:
 			
 			for (int i = 0; i < event2->count; ++i)
 			{					
-				gms_Achievement *ach = (gms_Achievement*)event2->values[i];
 				lua_newtable(L);
 				
-				lua_pushstring(L, ach->id.c_str());
+				lua_pushstring(L, event2->achievements[i].id);
 				lua_setfield(L, -2, "id");
 	
-				lua_pushstring(L, ach->name.c_str());
+				lua_pushstring(L, event2->achievements[i].name);
 				lua_setfield(L, -2, "name");
 				
-				lua_pushstring(L, ach->description.c_str());
+				lua_pushstring(L, event2->achievements[i].description);
 				lua_setfield(L, -2, "description");
 	
-				lua_pushnumber(L, ach->status);
+				lua_pushnumber(L, event2->achievements[i].status);
 				lua_setfield(L, -2, "status");
 				
-				lua_pushnumber(L, ach->lastUpdate);
+				lua_pushnumber(L, event2->achievements[i].lastUpdate);
 				lua_setfield(L, -2, "lastUpdate");
 				
-				lua_pushnumber(L, ach->currentSteps);
+				lua_pushnumber(L, event2->achievements[i].currentSteps);
 				lua_setfield(L, -2, "currentSteps");
 				
-				lua_pushnumber(L, ach->totalSteps);
+				lua_pushnumber(L, event2->achievements[i].totalSteps);
 				lua_setfield(L, -2, "totalSteps");
 				
 				lua_rawseti(L, -2, i + 1);
@@ -397,19 +396,18 @@ private:
 			
 			for (int i = 0; i < event2->count; ++i)
 			{				
-				gms_Score *score = (gms_Score*)event2->values[i];
 				lua_newtable(L);
 				
-				lua_pushstring(L, score->rank.c_str());
+				lua_pushstring(L, event2->scores[i].rank);
 				lua_setfield(L, -2, "rank");
 	
-				lua_pushstring(L, score->score.c_str());
+				lua_pushstring(L, event2->scores[i].score);
 				lua_setfield(L, -2, "score");
 				
-				lua_pushstring(L, score->name.c_str());
+				lua_pushstring(L, event2->scores[i].name);
 				lua_setfield(L, -2, "name");
 	
-				lua_pushnumber(L, score->timestamp);
+				lua_pushnumber(L, event2->scores[i].timestamp);
 				lua_setfield(L, -2, "timestamp");
 				
 				lua_rawseti(L, -2, i + 1);
@@ -701,7 +699,7 @@ void player2table(gms_Player *player, lua_State* L)
 	if(player)
 	{
 		int i = 1;
-		while(player->id != NULL)
+		while(player->id.empty())
 		{
 			//set subtable to table
 			lua_pushnumber(L, i);
@@ -711,13 +709,13 @@ void player2table(gms_Player *player, lua_State* L)
 	
 			//set key
 			lua_pushstring(L, "id");
-			lua_pushstring(L, player->id);
+			lua_pushstring(L, player->id.c_str());
 			//back to table
 			lua_settable(L, -3);
 			
 			//set key
 			lua_pushstring(L, "name");
-			lua_pushstring(L, player->name);
+			lua_pushstring(L, player->name.c_str());
 			//back to table
 			lua_settable(L, -3);
 			

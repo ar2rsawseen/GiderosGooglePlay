@@ -239,7 +239,7 @@ public:
 		for (int i = 0; i < size; i++) {
 			jobject jsubobj = env->CallObjectMethod(jmapobj, env->GetMethodID(clsSparse, "valueAt", "(I)Ljava/lang/Object;"), (jint)i);
 			
-			gms_Player gplayer = {this->mapGetStr("id", jsubobj).c_str(), this->mapGetStr("name", jsubobj).c_str()};
+			gms_Player gplayer = {this->mapGetStr("id", jsubobj), this->mapGetStr("name", jsubobj)};
 			
 			player.push_back(gplayer);
 			
@@ -266,7 +266,7 @@ public:
 		for (int i = 0; i < size; i++) {
 			jobject jsubobj = env->CallObjectMethod(jmapobj, env->GetMethodID(clsSparse, "valueAt", "(I)Ljava/lang/Object;"), (jint)i);
 			
-			gms_Achievement gach = {this->mapGetStr("id", jsubobj), this->mapGetStr("name", jsubobj), this->mapGetStr("description", jsubobj), this->mapGetInt("status", jsubobj), this->mapGetInt("lastUpdate", jsubobj), this->mapGetInt("currentSteps", jsubobj), this->mapGetInt("totalSteps", jsubobj)};
+			Achievement gach = {this->mapGetStr("id", jsubobj), this->mapGetStr("name", jsubobj), this->mapGetStr("description", jsubobj), this->mapGetInt("status", jsubobj), this->mapGetInt("lastUpdate", jsubobj), this->mapGetInt("currentSteps", jsubobj), this->mapGetInt("totalSteps", jsubobj)};
 			
 			achievements.push_back(gach);
 			
@@ -288,7 +288,7 @@ public:
 		for (int i = 0; i < size; i++) {
 			jobject jsubobj = env->CallObjectMethod(jmapobj, env->GetMethodID(clsSparse, "valueAt", "(I)Ljava/lang/Object;"), (jint)i);
 			
-			gms_Score gscores = {this->mapGetStr("rank", jsubobj), this->mapGetStr("score", jsubobj), this->mapGetStr("name", jsubobj), this->mapGetInt("timestamp", jsubobj)};
+			Score gscores = {this->mapGetStr("rank", jsubobj), this->mapGetStr("score", jsubobj), this->mapGetStr("name", jsubobj), this->mapGetInt("timestamp", jsubobj)};
 			
 			scores.push_back(gscores);
 			
@@ -340,13 +340,12 @@ public:
 		size_t size = sizeof(gms_Achievements);
 		int count = (int)achievements.size();
 		
-		for (std::size_t i = 0; i < achievements.size(); ++i)
+		for (std::size_t i = 0; i < count; ++i)
 		{
-			gms_Achievement e = (gms_Achievement)achievements[i];
 			size += sizeof(gms_Achievement);
-			size += e.id.size() + 1;
-			size += e.name.size() + 1;
-			size += e.description.size() + 1;
+			size += achievements[i].id.size() + 1;
+			size += achievements[i].name.size() + 1;
+			size += achievements[i].description.size() + 1;
 		}
 		
 		// allocate it
@@ -356,29 +355,28 @@ public:
 		char *ptr = (char*)event + sizeof(gms_Achievements);
 		
 		event->count = count;
+		event->achievements = (gms_Achievement*)ptr;
 		
-		event->values = new const char*[count];
-		for (std::size_t i = 0; i < achievements.size(); ++i)
+		ptr += achievements.size() * sizeof(gms_Achievement);
+		 
+		for (std::size_t i = 0; i < count; ++i)
 		{	
-			gms_Achievement *e = (gms_Achievement*)gevent_CreateEventStruct3(
-			sizeof(gms_Achievement),
-			offsetof(gms_Achievement, id), achievements[i].id.c_str(),
-			offsetof(gms_Achievement, name), achievements[i].name.c_str(),
-			offsetof(gms_Achievement, description), achievements[i].description.c_str());
+			event->achievements[i].id = ptr;
+			strcpy(ptr, achievements[i].id.c_str());
+			ptr += achievements[i].id.size() + 1;
 		
-			e->status = achievements[i].status;
-			e->lastUpdate = achievements[i].lastUpdate;
-			e->currentSteps = achievements[i].currentSteps;
-			e->totalSteps = achievements[i].totalSteps;
-			
-			size_t size = sizeof(achievements[i]);
-			size += achievements[i].id.size() + 1;
-			size += achievements[i].name.size() + 1;
-			size += achievements[i].description.size() + 1;
-			
-			memcpy(ptr, e, size);
-			event->values[i] = ptr;
-			ptr += size;
+			event->achievements[i].name = ptr;
+			strcpy(ptr, achievements[i].name.c_str());
+			ptr += achievements[i].name.size() + 1;
+		
+			event->achievements[i].description = ptr;
+			strcpy(ptr, achievements[i].description.c_str());
+			ptr += achievements[i].description.size() + 1;
+		
+			event->achievements[i].status = achievements[i].status;
+			event->achievements[i].lastUpdate = achievements[i].lastUpdate;
+			event->achievements[i].currentSteps = achievements[i].currentSteps;
+			event->achievements[i].totalSteps = achievements[i].totalSteps;
 		}
 		
 		gevent_EnqueueEvent(gid_, callback_s, GMS_LOAD_ACHIEVEMENTS_COMPLETE_EVENT, event, 1, this);
@@ -392,13 +390,12 @@ public:
 		size_t size = sizeof(gms_Leaderboard);
 		int count = (int)scores.size();
 		
-		for (std::size_t i = 0; i < scores.size(); ++i)
+		for (std::size_t i = 0; i < count; ++i)
 		{
-			gms_Score e = (gms_Score)scores[i];
 			size += sizeof(gms_Score);
-			size += e.rank.size() + 1;
-			size += e.score.size() + 1;
-			size += e.name.size() + 1;
+			size += scores[i].rank.size() + 1;
+			size += scores[i].score.size() + 1;
+			size += scores[i].name.size() + 1;
 		}
 		
 		std::string id = MyGetStringUTFChars(env, jId);
@@ -413,35 +410,32 @@ public:
 		// and copy the data into it
 		char *ptr = (char*)event + sizeof(gms_Leaderboard);
 		
-		strcpy(ptr, id.c_str());
 		event->id = ptr;
+		strcpy(ptr, id.c_str());
 		ptr += id.size() + 1;
 		
-		strcpy(ptr, name.c_str());
 		event->name = ptr;
+		strcpy(ptr, name.c_str());
 		ptr += name.size() + 1;
 		
 		event->count = count;
-		event->values = new const char*[count];
+		event->scores = (gms_Score*)ptr;
 		
-		for (std::size_t i = 0; i < scores.size(); ++i)
+		for (std::size_t i = 0; i < count; ++i)
 		{	
-			gms_Score *e = (gms_Score*)gevent_CreateEventStruct3(
-			sizeof(gms_Score),
-			offsetof(gms_Score, rank), scores[i].rank.c_str(),
-			offsetof(gms_Score, score), scores[i].score.c_str(),
-			offsetof(gms_Score, name), scores[i].name.c_str());
+			event->scores[i].rank = ptr;
+			strcpy(ptr, scores[i].rank.c_str());
+			ptr += scores[i].rank.size() + 1;
+			
+			event->scores[i].score = ptr;
+			strcpy(ptr, scores[i].score.c_str());
+			ptr += scores[i].score.size() + 1;
+			
+			event->scores[i].name = ptr;
+			strcpy(ptr, scores[i].name.c_str());
+			ptr += scores[i].name.size() + 1;
 		
-			e->timestamp = scores[i].timestamp;
-			
-			size_t size = sizeof(scores[i]);
-			size += scores[i].rank.size() + 1;
-			size += scores[i].score.size() + 1;
-			size += scores[i].name.size() + 1;
-			
-			memcpy(ptr, e, size);
-			event->values[i] = ptr;
-			ptr += size;
+			event->scores[i].timestamp = scores[i].timestamp;
 		}
 		
 		gevent_EnqueueEvent(gid_, callback_s, GMS_LOAD_SCORES_COMPLETE_EVENT, event, 1, this);
@@ -654,8 +648,8 @@ private:
 	jclass clsBundle;
 	jclass clsSparse;
 	std::vector<gms_Player> player;
-	std::vector<gms_Achievement> achievements;
-	std::vector<gms_Score> scores;
+	std::vector<Achievement> achievements;
+	std::vector<Score> scores;
 	g_id gid_;
 };
 
