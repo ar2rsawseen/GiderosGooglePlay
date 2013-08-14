@@ -49,9 +49,9 @@
 <li>googleplay:logout() --logout</li>
 <li>googleplay:showSettings() --show settings screen</li>
 <li>googleplay:showLeaderboard(leaderboardId) --show leaderboard screen</li>
-<li>googleplay:reportScore(leaderboardId, score) --post score to service</li>
+<li>googleplay:reportScore(leaderboardId, score [,immediate]) --post score to service</li>
 <li>googleplay:showAchievements() --show achievements screen</li>
-<li>googleplay:reportAchievement(achId [, numSteps]) --achievement unlocked or progressed by specified amount of steps of total defined steps</li>
+<li>googleplay:reportAchievement(achId [, numSteps, immediate]) --achievement unlocked or progressed by specified amount of steps of total defined steps</li>
 <li>googleplay:loadAchievements() --retrieve all defined achievemenets</li>
 <li>googleplay:loadScores(leaderboardId [,timespan, participants, maxResults]) --retrieve all scores for specific leaderboard ina specific timespan for specific participans</li>
 <li>googleplay:autoMatch(minPlayers, maxPlayers) --create a quick game between randomly selected players</li>
@@ -62,6 +62,7 @@
 <li>googleplay:sendTo(playerId, data, isReliable) --send data to specific user by id</li>
 <li>googleplay:sendToAll(data, isReliable) -- send to all users</li>
 <li>googleplay:getCurrentPlayer() --get your current user name</li>
+<li>googleplay:getCurrentPlayerId() --get your current user id</li>
 <li>googleplay:getAllPlayers() --retrieve information (id and name) for all users involved in game</li>
 </ul>
 
@@ -118,6 +119,7 @@
 	<li>event.scores[].timestamp</li>
 	<li>event.scores[].score</li>
 	<li>event.scores[].rank</li>
+	<li>event.scores[].playerId</li>
 </ul>
 </li>
 </ul>
