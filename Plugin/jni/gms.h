@@ -44,6 +44,7 @@ typedef struct Score
 	std::string rank;
 	std::string score;
 	std::string name;
+	std::string playerId;
 	int timestamp;
 } Score;
 
@@ -52,6 +53,7 @@ typedef struct gms_Score
 	const char *rank;
 	const char *score;
 	const char *name;
+	const char *playerId;
 	int timestamp;
 } gms_Score;
 
@@ -115,9 +117,9 @@ G_API void gms_login();
 G_API void gms_logout();
 G_API void gms_showSettings();
 G_API void gms_showLeaderboard(const char *id);
-G_API void gms_reportScore(const char *id, long score);
+G_API void gms_reportScore(const char *id, long score, int immediate);
 G_API void gms_showAchievements();
-G_API void gms_reportAchievement(const char *id, int steps);
+G_API void gms_reportAchievement(const char *id, int steps, int immediate);
 G_API void gms_loadAchievements();
 G_API void gms_loadScores(const char *id, int span, int collection, int maxResults);
 G_API void gms_loadPlayerScores(const char *id, int span, int collection, int maxResults);
@@ -129,6 +131,7 @@ G_API void gms_showWaitingRoom(int minPlayers);
 G_API void gms_sendTo(const char* id, const void* data, size_t size, int isReliable);
 G_API void gms_sendToAll(const void* data, size_t size, int isReliable);
 G_API const char* gms_getCurrentPlayer();
+G_API const char* gms_getCurrentPlayerId();
 G_API gms_Player* gms_getAllPlayers();
 
 G_API g_id gms_addCallback(gevent_Callback callback, void *udata);

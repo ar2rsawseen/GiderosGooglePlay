@@ -136,9 +136,9 @@ public:
 		gms_showLeaderboard(id);
 	}
 	
-	void reportScore(const char *id, long score)
+	void reportScore(const char *id, long score, int immediate)
 	{
-		gms_reportScore(id, score);
+		gms_reportScore(id, score, immediate);
 	}
 	
 	void showAchievements()
@@ -146,9 +146,9 @@ public:
 		gms_showAchievements();
 	}
 	
-	void reportAchievement(const char *id, int steps)
+	void reportAchievement(const char *id, int steps, int immediate)
 	{
-		gms_reportAchievement(id, steps);
+		gms_reportAchievement(id, steps, immediate);
 	}
 	
 	void loadAchievements()
@@ -204,6 +204,11 @@ public:
 	const char* getCurrentPlayer()
 	{
 		return gms_getCurrentPlayer();
+	}
+	
+	const char* getCurrentPlayerId()
+	{
+		return gms_getCurrentPlayerId();
 	}
 	
 	gms_Player* getAllPlayers()
@@ -406,6 +411,9 @@ private:
 				
 				lua_pushstring(L, event2->scores[i].name);
 				lua_setfield(L, -2, "name");
+				
+				lua_pushstring(L, event2->scores[i].playerId);
+				lua_setfield(L, -2, "playerId");
 	
 				lua_pushnumber(L, event2->scores[i].timestamp);
 				lua_setfield(L, -2, "timestamp");
@@ -486,7 +494,8 @@ static int reportScore(lua_State *L)
 	GooglePlay *gms = getInstance(L, 1);
 	const char *id = luaL_checkstring(L, 2);
 	long score = luaL_checklong(L, 3);
-	gms->reportScore(id, score);
+	int immediate = lua_toboolean(L, 4);
+	gms->reportScore(id, score, immediate);
     return 0;
 }
 
@@ -503,10 +512,21 @@ static int reportAchievement(lua_State* L)
 
 	const char* id = luaL_checkstring(L, 2);
 	int numSteps = 0;
+	int immediate = 0;
 	if (!lua_isnoneornil(L, 3))
-		numSteps = luaL_checkinteger(L, 3);
+	{
+		if(lua_isboolean(L, 3))
+		{
+			immediate = lua_toboolean(L, 3);
+		}
+		else
+		{
+			numSteps = luaL_checkinteger(L, 3);
+			immediate = lua_toboolean(L, 4);
+		}
+	}
 	
-	gms->reportAchievement(id, numSteps);
+	gms->reportAchievement(id, numSteps, immediate);
 	
 	return 0;
 }
@@ -691,6 +711,17 @@ static int getCurrentPlayer(lua_State *L)
     return 1;
 }
 
+static int getCurrentPlayerId(lua_State *L)
+{
+	GooglePlay *gms = getInstance(L, 1);
+		
+	const char *name = gms->getCurrentPlayerId();
+	
+	lua_pushstring(L, name);
+	
+    return 1;
+}
+
 void player2table(gms_Player *player, lua_State* L)
 {
 	//main table
@@ -763,6 +794,7 @@ static int loader(lua_State *L)
         {"sendToAll", sendToAll},
         {"getCurrentPlayer", getCurrentPlayer},
         {"getAllPlayers", getAllPlayers},
+        {"getCurrentPlayerId", getCurrentPlayerId},
 		{NULL, NULL},
 	};
     

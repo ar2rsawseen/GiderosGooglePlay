@@ -77,11 +77,11 @@ public:
 		env->DeleteLocalRef(jId);
 	}
 	
-	void reportScore(const char *id, long score)
+	void reportScore(const char *id, long score, int immediate)
 	{
 		JNIEnv *env = g_getJNIEnv();
 		jstring jId = env->NewStringUTF(id);
-		env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "reportScore", "(Ljava/lang/String;J)V"), jId, (jlong)score);
+		env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "reportScore", "(Ljava/lang/String;JI)V"), jId, (jlong)score, (jint)immediate);
 		env->DeleteLocalRef(jId);
 	}
 	
@@ -91,17 +91,17 @@ public:
 		env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "showAchievements", "()V"));
 	}
 	
-	void reportAchievement(const char *id, int steps)
+	void reportAchievement(const char *id, int steps, int immediate)
 	{
 		JNIEnv *env = g_getJNIEnv();
 		jstring jId = env->NewStringUTF(id);
 		if(steps == 0)
 		{
-			env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "reportAchievement", "(Ljava/lang/String;)V"), jId);
+			env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "reportAchievement", "(Ljava/lang/String;I)V"), jId, (jint)immediate);
 		}
 		else
 		{
-			env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "reportAchievement", "(Ljava/lang/String;I)V"), jId, (jint)steps);
+			env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "reportAchievement", "(Ljava/lang/String;II)V"), jId, (jint)steps, (jint)immediate);
 		}
 		env->DeleteLocalRef(jId);
 	}
@@ -165,6 +165,15 @@ public:
 		JNIEnv *env = g_getJNIEnv();
 		
 		jstring js = (jstring)env->CallStaticObjectMethod(cls_, env->GetStaticMethodID(cls_, "getCurrentPlayer", "()Ljava/lang/String;"));
+		const char *val = env->GetStringUTFChars(js, NULL);
+		return val;
+	}
+	
+	const char* getCurrentPlayerId()
+	{
+		JNIEnv *env = g_getJNIEnv();
+		
+		jstring js = (jstring)env->CallStaticObjectMethod(cls_, env->GetStaticMethodID(cls_, "getCurrentPlayerId", "()Ljava/lang/String;"));
 		const char *val = env->GetStringUTFChars(js, NULL);
 		return val;
 	}
@@ -288,7 +297,7 @@ public:
 		for (int i = 0; i < size; i++) {
 			jobject jsubobj = env->CallObjectMethod(jmapobj, env->GetMethodID(clsSparse, "valueAt", "(I)Ljava/lang/Object;"), (jint)i);
 			
-			Score gscores = {this->mapGetStr("rank", jsubobj), this->mapGetStr("score", jsubobj), this->mapGetStr("name", jsubobj), this->mapGetInt("timestamp", jsubobj)};
+			Score gscores = {this->mapGetStr("rank", jsubobj), this->mapGetStr("score", jsubobj), this->mapGetStr("name", jsubobj), this->mapGetStr("playerId", jsubobj), this->mapGetInt("timestamp", jsubobj)};
 			
 			scores.push_back(gscores);
 			
@@ -396,6 +405,7 @@ public:
 			size += scores[i].rank.size() + 1;
 			size += scores[i].score.size() + 1;
 			size += scores[i].name.size() + 1;
+			size += scores[i].playerId.size() + 1;
 		}
 		
 		std::string id = MyGetStringUTFChars(env, jId);
@@ -421,6 +431,8 @@ public:
 		event->count = count;
 		event->scores = (gms_Score*)ptr;
 		
+		ptr += scores.size() * sizeof(gms_Score);
+		
 		for (std::size_t i = 0; i < count; ++i)
 		{	
 			event->scores[i].rank = ptr;
@@ -434,6 +446,10 @@ public:
 			event->scores[i].name = ptr;
 			strcpy(ptr, scores[i].name.c_str());
 			ptr += scores[i].name.size() + 1;
+			
+			event->scores[i].playerId = ptr;
+			strcpy(ptr, scores[i].playerId.c_str());
+			ptr += scores[i].playerId.size() + 1;
 		
 			event->scores[i].timestamp = scores[i].timestamp;
 		}
@@ -812,9 +828,9 @@ void gms_showLeaderboard(const char *id)
 	s_gms->showLeaderboard(id);
 }
 
-void gms_reportScore(const char *id, long score)
+void gms_reportScore(const char *id, long score, int immediate)
 {
-	s_gms->reportScore(id, score);
+	s_gms->reportScore(id, score, immediate);
 }
 
 void gms_showAchievements()
@@ -822,9 +838,9 @@ void gms_showAchievements()
 	s_gms->showAchievements();
 }
 
-void gms_reportAchievement(const char *id, int steps)
+void gms_reportAchievement(const char *id, int steps, int immediate)
 {
-	s_gms->reportAchievement(id, steps);
+	s_gms->reportAchievement(id, steps, immediate);
 }
 
 void gms_loadAchievements()
@@ -880,6 +896,11 @@ void gms_sendToAll(const void* data, size_t size, int isReliable)
 const char* gms_getCurrentPlayer()
 {
 	return s_gms->getCurrentPlayer();
+}
+
+const char* gms_getCurrentPlayerId()
+{
+	return s_gms->getCurrentPlayerId();
 }
 
 gms_Player* gms_getAllPlayers()

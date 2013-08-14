@@ -2,14 +2,11 @@ package com.giderosmobile.android.plugins.googleplaygame;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.util.SparseArray;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -71,10 +68,8 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	}
 
 	public static void onStart() {
-		Log.d("GiderosPlay", "try onStart");
 		if(mHelper != null)
 		{
-			Log.d("GiderosPlay", "onStart");
 			sActivity.get().runOnUiThread(new Runnable() {
 	            public void run() {
 	            	mHelper.onStart(sActivity.get());
@@ -89,7 +84,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	}
 	
 	public static void onActivityResult(int request, int response, Intent data) {
-		Log.d("GiderosPlay", "onActivityResult");
+		//Log.d("GiderosPlay", "onActivityResult");
 		 if(mHelper != null)
 			mHelper.onActivityResult(request, response, data);
 		 if (request == RC_INVITATION_INBOX) {
@@ -110,12 +105,12 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 			 mHelper.getGamesClient().joinRoom(roomConfig);
 		 }
 		 else if (request == RC_SELECT_PLAYERS) {
-			 Log.d("GiderosPlay", "onSelectingPlayers: " + response);
+			 //Log.d("GiderosPlay", "onSelectingPlayers: " + response);
 			 if (response != Activity.RESULT_OK) {
 				 // canceled
 				 return;
 			 }
-			 Log.d("GiderosPlay", "selecting");
+			 //Log.d("GiderosPlay", "selecting");
 			 // get the invitee list
 			 final ArrayList<String> invitees =
 					 data.getStringArrayListExtra(GamesClient.EXTRA_PLAYERS);
@@ -188,7 +183,6 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	
 	static public void init(long data)
 	{
-		Log.d("GiderosPlay", "Initializing");
 		sData = data;
 		sInstance = new GGooglePlay();
 		mHelper = new GameHelper(sActivity.get());
@@ -224,7 +218,6 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     	{
     		sActivity.get().runOnUiThread(new Runnable() {
                public void run() {
-            	   Log.d("GiderosPlay", "Sign in start");
             	   mHelper.beginUserInitiatedSignIn();
                }
         	});
@@ -260,9 +253,18 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     	});
     }
     
-    static public void reportScore(String id, long score){
+    static public void reportScore(String id, long score, int immediate){
     	if(mHelper.isSignedIn())
-    		mHelper.getGamesClient().submitScoreImmediate(sInstance, id, score);
+    	{
+    		if(immediate == 1)
+    		{
+    			mHelper.getGamesClient().submitScoreImmediate(sInstance, id, score);
+    		}
+    		else
+    		{
+    			mHelper.getGamesClient().submitScore(id, score);
+    		}
+    	}
     }
     
     
@@ -275,14 +277,32 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     	});
     }
     
-    static public void reportAchievement(String id){
+    static public void reportAchievement(String id, int immediate){
     	if(mHelper.isSignedIn())
-    		mHelper.getGamesClient().unlockAchievementImmediate(sInstance, id);
+    	{
+    		if(immediate == 1)
+    		{
+    			mHelper.getGamesClient().unlockAchievementImmediate(sInstance, id);
+    		}
+    		else
+    		{
+    			mHelper.getGamesClient().unlockAchievement(id);
+    		}
+    	}
     }
     
-    static public void reportAchievement(String id, int numSteps){
+    static public void reportAchievement(String id, int numSteps, int immediate){
     	if(mHelper.isSignedIn())
-    		mHelper.getGamesClient().incrementAchievementImmediate(sInstance, id, numSteps);
+    	{
+    		if(immediate == 1)
+    		{
+    			mHelper.getGamesClient().incrementAchievementImmediate(sInstance, id, numSteps);
+    		}
+    		else
+    		{
+    			mHelper.getGamesClient().incrementAchievement(id, numSteps);
+    		}
+    	}
     }
     
     static public void loadAchievements(){
@@ -324,7 +344,6 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     static public void invitePlayers(final int minPlayers, final int maxPlayers){
     	sActivity.get().runOnUiThread(new Runnable() {
             public void run() {
-            	Log.d("GiderosPlay", "invitePlayers");
             	if(mHelper.isSignedIn())
             		sActivity.get().startActivityForResult(mHelper.getGamesClient().getSelectPlayersIntent(minPlayers, maxPlayers), RC_SELECT_PLAYERS);
             }
@@ -393,6 +412,12 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     static public String getCurrentPlayer(){
     	if(mHelper.isSignedIn())
     		return mHelper.getGamesClient().getCurrentPlayer().getDisplayName();
+    	return "";
+    }
+    
+    static public String getCurrentPlayerId(){
+    	if(mHelper.isSignedIn())
+    		return mHelper.getGamesClient().getCurrentPlayer().getPlayerId();
     	return "";
     }
     
@@ -465,7 +490,6 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 			if(statusCode == GamesClient.STATUS_OK){
 				SparseArray<Bundle> arr = new SparseArray<Bundle>();
 				int size = buffer.getCount();
-				Log.d("GiderosPlay", "Size: "+size);
 				for(int i = 0; i < size; i++){
 					Achievement ach = buffer.get(i);
 					Bundle map = new Bundle();
@@ -505,6 +529,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 					map.putString("rank", l.getDisplayRank());
 					map.putString("score", l.getDisplayScore());
 					map.putString("name", l.getScoreHolderDisplayName());
+					map.putString("playerId", l.getScoreHolder().getPlayerId());
 					map.putInt("timestamp", (int)(l.getTimestampMillis()/1000));
 					lscores.put(i, map);
 				}
@@ -635,7 +660,6 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	@Override
 	public void onRoomAutoMatching(Room room) {
 		//http://developer.android.com/reference/com/google/android/gms/games/multiplayer/realtime/RoomStatusUpdateListener.html
-		Log.d("GiderosPlay", "Matching for room");
 		updateRoom(room);
 		if (sData != 0)
 			GGooglePlay.onRoomAutoMatching(room.getRoomId(), sData);
@@ -696,5 +720,17 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	private static native void onRoomAutoMatching(String id, long data);
 	private static native void onRoomConnecting(String id, long data);
 	private static native void onDataReceived(byte[] message, String sender, long data);
+
+	@Override
+	public void onP2PConnected(String participantId) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onP2PDisconnected(String participantId) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 }

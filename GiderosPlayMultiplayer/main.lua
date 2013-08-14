@@ -53,9 +53,9 @@ googleplay:addEventListener(Event.LOGIN_COMPLETE, function(e)
 		if not isPlaying then
 			print("do automatch")
 			--automatch for min 2 max 2 players
-			googleplay:autoMatch(2, 2)
+			--googleplay:autoMatch(1, 1)
 			--googleplay:showWaitingRoom(2)
-			--googleplay:invitePlayers(2, 2)
+			googleplay:invitePlayers(1, 1)
 			--googleplay:showInvitations()
 		end
 	end)
