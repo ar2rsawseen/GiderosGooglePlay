@@ -237,7 +237,7 @@ public:
 	struct gms_Player* map2player(jobject jmapobj)
 	{
 		JNIEnv *env = g_getJNIEnv();
-		int size = (int)env->CallObjectMethod(jmapobj, env->GetMethodID(clsSparse, "size", "()I"));
+		int size = (int)env->CallIntMethod(jmapobj, env->GetMethodID(clsSparse, "size", "()I"));
 		if(size == 0)
 		{
 			return NULL;
@@ -264,7 +264,7 @@ public:
 	void map2achievement(jobject jmapobj)
 	{
 		JNIEnv *env = g_getJNIEnv();
-		int size = (int)env->CallObjectMethod(jmapobj, env->GetMethodID(clsSparse, "size", "()I"));
+		int size = (int)env->CallIntMethod(jmapobj, env->GetMethodID(clsSparse, "size", "()I"));
 		if(size == 0)
 		{
 			return;
@@ -286,7 +286,7 @@ public:
 	void map2score(jobject jmapobj)
 	{
 		JNIEnv *env = g_getJNIEnv();
-		int size = (int)env->CallObjectMethod(jmapobj, env->GetMethodID(clsSparse, "size", "()I"));
+		int size = (int)env->CallIntMethod(jmapobj, env->GetMethodID(clsSparse, "size", "()I"));
 		if(size == 0)
 		{
 			return;

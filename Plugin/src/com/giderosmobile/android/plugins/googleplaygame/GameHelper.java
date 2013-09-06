@@ -959,11 +959,11 @@ public class GameHelper implements GooglePlayServicesClient.ConnectionCallbacks,
 
         switch (actResp) {
             case GamesActivityResultCodes.RESULT_APP_MISCONFIGURED:
-                errorDialog = makeSimpleDialog("App is misconfigured");
+                errorDialog = makeSimpleDialog("App Misconfigured");
                 printMisconfiguredDebugInfo();
                 break;
             case GamesActivityResultCodes.RESULT_SIGN_IN_FAILED:
-                errorDialog = makeSimpleDialog("Sign in Failed");
+                errorDialog = makeSimpleDialog("Sign in failed");
                 break;
             case GamesActivityResultCodes.RESULT_LICENSE_FAILED:
                 errorDialog = makeSimpleDialog("License Failed");
@@ -976,8 +976,7 @@ public class GameHelper implements GooglePlayServicesClient.ConnectionCallbacks,
                 if (errorDialog == null) {
                     // get fallback dialog
                     debugLog("No standard error dialog available. Making fallback dialog.");
-                    errorDialog = makeSimpleDialog("Unknown error:"
-                            + " " + errorCodeToString(errorCode));
+                    errorDialog = makeSimpleDialog("Unknown error: " + errorCodeToString(errorCode));
                 }
         }
 
