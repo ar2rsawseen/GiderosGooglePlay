@@ -1,59 +1,22 @@
-<h1>Game services installation instructions</h1>
-
-<h4>1) Prerequesites</h4>
-<ul>
-<li>Install Google Play Services: http://developer.android.com/google/play-services/setup.html<li>
-<li>Set up Google Play Services for your app: https://developers.google.com/games/services/android/quickstart</li>
-</ul>
-<p>Things to note:
-<ul>
-<li>You appID, which you will be using (don't mix with ClientID, you don't need it for Androids)</li>
-<li>When entering the SHA1 fingerprint for your app authorization, don't use the default one, you need to either:
-<ul>
-<li>Genereate your own for production key from your production certificate, but it means you will only be able to use it after you export and sign app, you won't be able to debug with it</li>
-<li>Use android debug key, which you can get in Eclipse, by choosing Window->Preferences->Android->Build, then you will be able to debug your app with Google Play Service</li>
-<ul></li>
-<li>Changing fingerprint from debug to production is a pain, better set up two diferent apps to do that.</li>
-<li>Add email of your google account used on phone for Test users, so you qill be able to test Google Services without publishing the app.</li>
-</ul></p>
-
-<h4>2) Gideros project</h4>
-<ul>
-<li>Create Gideros project</li>
-<li>Export it as Android project</li>
-<li>Import it in Eclipse</li>
-</ul>
-
-<h4>3) Copying files</h4>
-<ul>
-<li>Copy .so files from libs folder to each separate armeabi folder</li>
-<li>Copy from src/giderosmobile/android/plugins folder named "googleplaygame" into your project's src/giderosmobile/android/plugins folder</li>
-<li>Copy ids.xml from res/values to res/values in your project</li>
-</ul>
-
-<h4>4) Modify Project</h4>
-<ul>
-<li>Reference in Eclipse imported Google Play Service by making a right click on the project, select Properties, then Android and push Add button in a Lirary section and select google-play-services-lib (if it is not there, you haven't properly imported in Eclipse, see Prerequesites, Install Google Play Services) </li>
-<li>Add your appID to ids.xml inside res/values folder</li>
-<li>Add &lt;meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/app_id" /&gt; to AndroidManifest file inside application tag</li>
-<li>Load plugin library in main Activity: System.loadLibrary("gms");</li>
-<li>Add external class: "com.giderosmobile.android.plugins.googleplaygame.GGooglePlay"</li>
-</ul>
-
-
-
 <h1>Plugin Reference API</h1>
+<style>
+.ios{
+	color: green;
+}
+</style>
 <h2>Methods</h2>
+<p><strong>Methods and properties that are supported by both Android ans iOS are marked as <span class='ios'>green</span></strong></p>
 <ul>
-<li>googleplay:login() --login</li>
-<li>googleplay:logout() --logout</li>
+<li class='ios'>googleplay:login() --login</li>
+<li class='ios'>googleplay:logout() --logout</li>
 <li>googleplay:showSettings() --show settings screen</li>
-<li>googleplay:showLeaderboard(leaderboardId) --show leaderboard screen</li>
-<li>googleplay:reportScore(leaderboardId, score [,immediate]) --post score to service</li>
-<li>googleplay:showAchievements() --show achievements screen</li>
-<li>googleplay:reportAchievement(achId [, numSteps, immediate]) --achievement unlocked or progressed by specified amount of steps of total defined steps</li>
-<li>googleplay:loadAchievements() --retrieve all defined achievemenets</li>
-<li>googleplay:loadScores(leaderboardId [,timespan, participants, maxResults]) --retrieve all scores for specific leaderboard ina specific timespan for specific participans</li>
+<li class='ios'>googleplay:showLeaderboard(leaderboardId) --show leaderboard screen</li>
+<li class='ios'>googleplay:reportScore(leaderboardId, score [,immediate]) --post score to service</li>
+<li class='ios'>googleplay:showAchievements() --show achievements screen</li>
+<li class='ios'>googleplay:reportAchievement(achId [, numSteps, immediate]) --achievement unlocked or progressed by specified amount of steps of total defined steps</li>
+<li class='ios'>googleplay:loadAchievements() --retrieve all defined achievemenets</li>
+<li class='ios'>googleplay:loadScores(leaderboardId [,timespan, participants, maxResults]) --retrieve all scores for specific leaderboard ina specific timespan for specific participans</li>
+<li class='ios'>googleplay:loadPlayerScores(leaderboardId [,timespan, participants, maxResults]) --retrieve all scores for specific leaderboard ina specific timespan for specific participans</li>
 <li>googleplay:autoMatch(minPlayers, maxPlayers) --create a quick game between randomly selected players</li>
 <li>googleplay:invitePlayers(minPlayers, maxPlayers) --allow user to invite players to a game</li>
 <li>googleplay:joinRoom(invitationId) --joins the game you've been invited to</li>
@@ -61,25 +24,30 @@
 <li>googleplay:showWaitingRoom(minPlayers) --show waiting room before the game with the list of players</li>
 <li>googleplay:sendTo(playerId, data, isReliable) --send data to specific user by id</li>
 <li>googleplay:sendToAll(data, isReliable) -- send to all users</li>
-<li>googleplay:getCurrentPlayer() --get your current user name</li>
-<li>googleplay:getCurrentPlayerId() --get your current user id</li>
+<li class='ios'>googleplay:getCurrentPlayer() --get your current user name</li>
+<li class='ios'>googleplay:getCurrentPlayerId() --get your current user id</li>
+<li class='ios'>googleplay:getCurrentPlayerId() --get your current user id</li>
 <li>googleplay:getAllPlayers() --retrieve information (id and name) for all users involved in game</li>
+<li class='ios'>googleplay:loadState(key) --load app state from slot key from the cloud</li>
+<li class='ios'>googleplay:updateState(key, data[, immediate]) --update app state for slot key with data bool immediate if it needs to be saved immediately</li>
+<li class='ios'>googleplay:deleteState(key) --delete app state for slot key</li>
+<li class='ios'>googleplay:resolveState(key, version, data) --resolve state conflict for slot key with version and data</li>
 </ul>
 
 <h2>Properties</h2>
 <ul>
-<li>GooglePlay.UNLOCKED --achievement state unlocked</li>
-<li>GooglePlay.REVEALED --achievement state available to user</li>
-<li>GooglePlay.HIDDEN   --achievement state unknown to user </li>
+<li class='ios'>GooglePlay.UNLOCKED --achievement state unlocked</li>
+<li class='ios'>GooglePlay.REVEALED --achievement state available to user</li>
+<li class='ios'>GooglePlay.HIDDEN   --achievement state unknown to user </li>
 </ul>
 <ul>
-<li>GooglePlay.ALL_TIME --leaderboard timespan all time</li>
-<li>GooglePlay.WEEK     --leaderboard timespan week</li>
-<li>GooglePlay.TODAY    --leaderboard timespan today</li>
+<li class='ios'>GooglePlay.ALL_TIME --leaderboard timespan all time</li>
+<li class='ios'>GooglePlay.WEEK     --leaderboard timespan week</li>
+<li class='ios'>GooglePlay.TODAY    --leaderboard timespan today</li>
 </ul>
 <ul>
-<li>GooglePlay.FRIENDS  --leaderboard participants</li>
-<li>GooglePlay.ALL_PLAYERS --leaderboard participants</li>
+<li class='ios'>GooglePlay.FRIENDS  --leaderboard participants</li>
+<li class='ios'>GooglePlay.ALL_PLAYERS --leaderboard participants</li>
 </ul>
 <h2>Events</h2>
 
@@ -92,42 +60,71 @@
 </ul>
 </li>
 <li>Event.GAME_STARTED</li>
-<li>Event.REPORT_ACHIEVEMENT_COMPLETE
+<li class='ios'>Event.REPORT_ACHIEVEMENT_COMPLETE
 <ul>
-	<li>event.achievementId</li>
+	<li class='ios'>event.achievementId</li>
 </ul>
 </li>
-<li>Event.LOAD_ACHIEVEMENTS_COMPLETE
+<li class='ios'>Event.LOAD_ACHIEVEMENTS_COMPLETE
 <ul>
-	<li>event.achievements</li>
-	<li>event.achievements[].id</li>
-	<li>event.achievements[].name</li>
-	<li>event.achievements[].description</li>
-	<li>event.achievements[].status</li>
-	<li>event.achievements[].currentSteps</li>
-	<li>event.achievements[].totalSteps</li>
-	<li>event.achievements[].lastUpdate</li>
+	<li class='ios'>event.achievements</li>
+	<li class='ios'>event.achievements[].id</li>
+	<li class='ios'>event.achievements[].name</li>
+	<li class='ios'>event.achievements[].description</li>
+	<li class='ios'>event.achievements[].status</li>
+	<li class='ios'>event.achievements[].currentSteps</li>
+	<li class='ios'>event.achievements[].totalSteps</li>
+	<li class='ios'>event.achievements[].lastUpdate</li>
 </ul>
 </li>
-<li>Event.REPORT_SCORE_COMPLETE</li>
-<li>Event.LOAD_SCORES_COMPLETE
+<li class='ios'>Event.REPORT_SCORE_COMPLETE</li>
+<li class='ios'>Event.LOAD_SCORES_COMPLETE
 <ul>
-	<li>event.name</li>
-	<li>event.leaderboardId</li>
-	<li>event.scores</li>
-	<li>event.scores[].name</li>
-	<li>event.scores[].timestamp</li>
-	<li>event.scores[].score</li>
-	<li>event.scores[].rank</li>
-	<li>event.scores[].playerId</li>
+	<li class='ios'>event.name</li>
+	<li class='ios'>event.leaderboardId</li>
+	<li class='ios'>event.scores</li>
+	<li class='ios'>event.scores[].name</li>
+	<li class='ios'>event.scores[].timestamp</li>
+	<li class='ios'>event.scores[].score</li>
+	<li class='ios'>event.scores[].rank</li>
+	<li class='ios'>event.scores[].playerId</li>
 </ul>
 </li>
 </ul>
 
 <h3>Autorization Events</h3>
 <ul>
-<li>Event.LOGIN_ERROR</li>
-<li>Event.LOGIN_COMPLETE</li>
+<li class='ios'>Event.LOGIN_ERROR</li>
+<li class='ios'>Event.LOGIN_COMPLETE</li>
+</ul>
+
+<h3>Cloud Events</h3>
+<ul>
+<li class='ios'>Event.STATE_LOADED
+<ul>
+	<li class='ios'>event.key</li>
+	<li class='ios'>event.isFresh</li>
+	<li class='ios'>event.data</li>
+</ul>
+</li>
+<li class='ios'>Event.STATE_ERROR
+<ul>
+	<li class='ios'>event.key</li>
+</ul>
+</li>
+<li class='ios'>Event.STATE_CONFLICT
+<ul>
+	<li class='ios'>event.key</li>
+	<li class='ios'>event.version</li>
+	<li class='ios'>event.localData</li>
+	<li class='ios'>event.serverData</li>
+</ul>
+</li>
+<li class='ios'>Event.STATE_DELETED
+<ul>
+	<li class='ios'>event.key</li>
+</ul>
+</li>
 </ul>
 
 <h3>Room Events</h3>

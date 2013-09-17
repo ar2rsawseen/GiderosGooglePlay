@@ -128,6 +128,38 @@ public:
 		env->DeleteLocalRef(jId);
 	}
 	
+	void loadState(int key)
+	{
+		JNIEnv *env = g_getJNIEnv();
+		env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "loadState", "(I)V"), (jint)key);
+	}
+
+	void updateState(int key, const void* data, size_t size, int immediate)
+	{
+		JNIEnv *env = g_getJNIEnv();
+		jbyteArray jdata = env->NewByteArray(size);
+		env->SetByteArrayRegion(jdata, 0, size, (const jbyte*)data);
+		env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "updateState", "(I[BI)V"), (jint)key, jdata, (jint)immediate);
+		env->DeleteLocalRef(jdata);
+	}
+
+	void resolveState(int key, const char* ver, const void* data, size_t size)
+	{
+		JNIEnv *env = g_getJNIEnv();
+		jstring jVer = env->NewStringUTF(ver);
+		jbyteArray jdata = env->NewByteArray(size);
+		env->SetByteArrayRegion(jdata, 0, size, (const jbyte*)data);
+		env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "resolveState", "(ILjava/lang/String;[B)V"), (jint)key, jVer, jdata);
+		env->DeleteLocalRef(jVer);
+		env->DeleteLocalRef(jdata);
+	}
+	
+	void deleteState(int key)
+	{
+		JNIEnv *env = g_getJNIEnv();
+		env->CallStaticVoidMethod(cls_, env->GetStaticMethodID(cls_, "deleteState", "(I)V"), (jint)key);
+	}
+	
 	void autoMatch(int minPlayers, int maxPlayers)
 	{
 		JNIEnv *env = g_getJNIEnv();
@@ -632,6 +664,81 @@ public:
 		gevent_EnqueueEvent(gid_, callback_s, GMS_DATA_RECEIVED_EVENT, event, 1, this);
 	}
 	
+	void onStateLoaded(jint key, jbyteArray jState, jint fresh)
+	{
+		JNIEnv *env = g_getJNIEnv();
+		
+		size_t structSize = sizeof(gms_StateLoaded);
+		size_t dataSize = env->GetArrayLength(jState);
+		
+		gms_StateLoaded *event = (gms_StateLoaded*)malloc(structSize + dataSize);
+
+		event->data = (char*)event + structSize;
+		env->GetByteArrayRegion(jState, 0, dataSize, (jbyte*)event->data);
+		event->size = dataSize;
+		event->key = key;
+		event->fresh = fresh;
+		
+		gevent_EnqueueEvent(gid_, callback_s, GMS_STATE_LOADED_EVENT, event, 1, this);
+	}
+	
+	void onStateError(jint key, jstring jErr)
+	{
+		JNIEnv *env = g_getJNIEnv();
+		
+		const char *error = env->GetStringUTFChars(jErr, NULL);
+		gms_StateError *event = (gms_StateError*)gevent_CreateEventStruct1(
+			sizeof(gms_StateError),
+			offsetof(gms_StateError, error), error);
+		event->key = key;
+		
+		gevent_EnqueueEvent(gid_, callback_s, GMS_STATE_ERROR_EVENT, event, 1, this);
+	}
+	
+	void onStateConflict(jint key, jstring jVer, jbyteArray jlocalState, jbyteArray jserverState)
+	{
+		JNIEnv *env = g_getJNIEnv();
+		const char *ver = env->GetStringUTFChars(jVer, NULL);
+		
+		size_t structSize = sizeof(gms_StateConflict);
+		size_t localSize = env->GetArrayLength(jlocalState);
+		size_t serverSize = env->GetArrayLength(jserverState);
+
+		//gms_ReceivedEvent *event = (gms_ReceivedEvent*)malloc(structSize + dataSize);
+		
+		gms_StateConflict *event = (gms_StateConflict*)gevent_CreateEventStruct1(
+			structSize + localSize + serverSize,
+			offsetof(gms_StateConflict, ver), ver);
+		
+		char *ptr = (char*)event + structSize;
+		
+		event->localData = ptr;
+		env->GetByteArrayRegion(jlocalState, 0, localSize, (jbyte*)event->localData);
+		event->localSize = localSize;
+		ptr += localSize;
+		
+		event->serverData = ptr;
+		env->GetByteArrayRegion(jserverState, 0, serverSize, (jbyte*)event->serverData);
+		event->serverSize = serverSize;
+		ptr += serverSize;
+		
+		event->key = key;
+		
+		env->ReleaseStringUTFChars(jVer, ver);
+		
+		gevent_EnqueueEvent(gid_, callback_s, GMS_STATE_CONFLICT_EVENT, event, 1, this);
+	}
+	
+	void onStateDeleted(jint key)
+	{
+		JNIEnv *env = g_getJNIEnv();
+		
+		gms_StateDeleted *event = (gms_StateDeleted*)malloc(sizeof(gms_StateDeleted));
+		event->key = key;
+		
+		gevent_EnqueueEvent(gid_, callback_s, GMS_STATE_DELETED_EVENT, event, 1, this);
+	}
+	
 	g_id addCallback(gevent_Callback callback, void *udata)
 	{
 		return callbackList_.addCallback(callback, udata);
@@ -699,6 +806,26 @@ void Java_com_giderosmobile_android_plugins_googleplaygame_GGooglePlay_onAchieve
 void Java_com_giderosmobile_android_plugins_googleplaygame_GGooglePlay_onLeaderboardScoresLoaded(JNIEnv *env, jclass clz, jstring id, jstring name, jstring scores, jlong data)
 {
 	((GMS*)data)->onLeaderboardScoresLoaded(id, name, scores);
+}
+
+void Java_com_giderosmobile_android_plugins_googleplaygame_GGooglePlay_onStateLoaded(JNIEnv *env, jclass clz, jint key, jbyteArray state, jint fresh, jlong data)
+{
+	((GMS*)data)->onStateLoaded(key, state, fresh);
+}
+
+void Java_com_giderosmobile_android_plugins_googleplaygame_GGooglePlay_onStateError(JNIEnv *env, jclass clz, jint key, jstring error, jlong data)
+{
+	((GMS*)data)->onStateError(key, error);
+}
+
+void Java_com_giderosmobile_android_plugins_googleplaygame_GGooglePlay_onStateConflict(JNIEnv *env, jclass clz, jint key, jstring ver, jbyteArray localState, jbyteArray serverState, jlong data)
+{
+	((GMS*)data)->onStateConflict(key, ver, localState, serverState);
+}
+
+void Java_com_giderosmobile_android_plugins_googleplaygame_GGooglePlay_onStateDeleted(JNIEnv *env, jclass clz, jint key, jlong data)
+{
+	((GMS*)data)->onStateDeleted(key);
 }
 
 void Java_com_giderosmobile_android_plugins_googleplaygame_GGooglePlay_onGameStarted(JNIEnv *env, jclass clz, jlong data)
@@ -851,6 +978,26 @@ void gms_loadAchievements()
 void gms_loadScores(const char *id, int span, int collection, int maxResults)
 {
 	s_gms->loadScores(id, span, collection, maxResults);
+}
+
+void gms_loadState(int key)
+{
+	s_gms->loadState(key);
+}
+
+void gms_updateState(int key, const void* data, size_t size, int immediate)
+{
+	s_gms->updateState(key, data, size, immediate);
+}
+
+void gms_resolveState(int key, const char* ver, const void* data, size_t size)
+{
+	s_gms->resolveState(key, ver, data, size);
+}
+
+void gms_deleteState(int key)
+{
+	s_gms->deleteState(key);
 }
 
 void gms_loadPlayerScores(const char *id, int span, int collection, int maxResults)

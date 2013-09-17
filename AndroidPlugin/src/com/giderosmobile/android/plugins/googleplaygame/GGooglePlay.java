@@ -9,6 +9,9 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.SparseArray;
 
+import com.google.android.gms.appstate.AppStateClient;
+import com.google.android.gms.appstate.OnStateDeletedListener;
+import com.google.android.gms.appstate.OnStateLoadedListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.games.GamesActivityResultCodes;
@@ -35,7 +38,7 @@ import com.google.android.gms.games.multiplayer.realtime.RoomStatusUpdateListene
 import com.google.android.gms.games.multiplayer.realtime.RoomUpdateListener;
 
 public class GGooglePlay implements GameHelper.GameHelperListener, OnAchievementUpdatedListener, OnScoreSubmittedListener, OnAchievementsLoadedListener, OnLeaderboardScoresLoadedListener, RealTimeMessageReceivedListener,
-RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
+RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnStateLoadedListener, OnStateDeletedListener
 {
 	private static WeakReference<Activity> sActivity;
 	private static GGooglePlay sInstance;
@@ -60,7 +63,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     private static String mMyId = null;
 
     // Requested clients. By default, that's just the games client.
-    protected static int mRequestedClients = CLIENT_GAMES|CLIENT_PLUS;
+    protected static int mRequestedClients = CLIENT_APPSTATE|CLIENT_GAMES|CLIENT_PLUS;
 	
 	public static void onCreate(Activity activity)
 	{
@@ -95,14 +98,16 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 			 Bundle extras = data.getExtras();
 			 Invitation invitation =
 		            extras.getParcelable(GamesClient.EXTRA_INVITATION);
-
-			 // accept it!
-			 RoomConfig roomConfig = RoomConfig.builder(sInstance)
+			 if(invitation != null)
+			 {
+				 // accept it!
+				 RoomConfig roomConfig = RoomConfig.builder(sInstance)
 					 .setMessageReceivedListener(sInstance)
 					 .setRoomStatusUpdateListener(sInstance)
 					 .setInvitationIdToAccept(invitation.getInvitationId())
 					 .build();
-			 mHelper.getGamesClient().joinRoom(roomConfig);
+				 mHelper.getGamesClient().joinRoom(roomConfig);
+			 }
 		 }
 		 else if (request == RC_SELECT_PLAYERS) {
 			 //Log.d("GiderosPlay", "onSelectingPlayers: " + response);
@@ -320,7 +325,41 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     		mHelper.getGamesClient().loadPlayerCenteredScores(sInstance, id, span, collection, maxResults);
     }
     
-   
+    /*CLOUD STUFF*/
+    
+    static public void loadState(int key){
+    	if (mHelper.isSignedIn()) {
+    		mHelper.getAppStateClient().loadState(sInstance, key);
+    	}
+    }
+    
+    static public void updateState(int key, byte[] state, int immediate){
+    	if (mHelper.isSignedIn()) {
+    		if(immediate == 1)
+    		{
+    			mHelper.getAppStateClient().updateStateImmediate(sInstance, key, state);
+    		}
+    		else
+    		{
+    			mHelper.getAppStateClient().updateState(key, state);
+    		}
+    	}
+    }
+    
+    static public void resolveState(int key, String version, byte[] state){
+    	if (mHelper.isSignedIn()) {
+    		mHelper.getAppStateClient().resolveState(sInstance, key, version, state);
+    	}
+    }
+    
+    static public void deleteState(int key){
+    	if (mHelper.isSignedIn()) {
+    		mHelper.getAppStateClient().deleteState(sInstance, key);
+    	}
+    }
+    
+   /*MULTIPLAYER STUFF*/
+    
     static public void autoMatch(int minPlayers, int maxPlayers) {
     	if(mHelper.isSignedIn())
     	{
@@ -697,12 +736,92 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	    }
 	}
 	
+	@Override
+	public void onStateConflict(int stateKey, String ver,
+            byte[] localData, byte[] serverData) {
+		if (sData != 0)
+			GGooglePlay.onStateConflict(stateKey, ver, localData, serverData, sData);
+	}
+
+	@Override
+	public void onStateLoaded(int statusCode, int stateKey, byte[] data) {
+		if (statusCode == AppStateClient.STATUS_OK) {
+			if (sData != 0)
+				GGooglePlay.onStateLoaded(stateKey, data, 1, sData);
+		}
+		else if (statusCode == AppStateClient.STATUS_NETWORK_ERROR_STALE_DATA) {
+			if (sData != 0)
+				GGooglePlay.onStateLoaded(stateKey, data, 0, sData);
+		} else {
+			if (sData != 0)
+			{
+				String error = "unknown error";
+				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
+				{
+					error = "need to reconnect client";
+				}
+				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
+				{
+					error = "could not connect server";
+				}
+				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_NO_DATA)
+				{
+					error = "could not connect server";
+				}
+				else if(statusCode == AppStateClient.STATUS_STATE_KEY_NOT_FOUND)
+				{
+					error = "no data";
+				}
+				else if(statusCode == AppStateClient.STATUS_STATE_KEY_LIMIT_EXCEEDED)
+				{
+					error = "key limit exceeded";
+				}
+				else if(statusCode == AppStateClient.STATUS_WRITE_SIZE_EXCEEDED)
+				{
+					error = "too much data passed";
+				}
+				GGooglePlay.onStateError(stateKey, error, sData);
+			}
+		}
+	}
+	
+	@Override
+	public void onStateDeleted(int statusCode, int stateKey) {
+		if (statusCode == AppStateClient.STATUS_OK) {
+			if (sData != 0)
+				GGooglePlay.onStateDeleted(stateKey, sData);
+		}
+		else
+		{
+			if (sData != 0)
+			{
+				String error = "unknown error";
+				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
+				{
+					error = "need to reconnect client";
+				}
+				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
+				{
+					error = "could not connect server";
+				}
+				GGooglePlay.onStateError(stateKey, error, sData);
+			}
+		}
+		
+	}
+	
 	private static native void onSignInFailed(long data);
 	private static native void onSignInSucceeded(long data);
 	private static native void onAchievementUpdated(String id, long data);
 	private static native void onScoreSubmitted(long data);
 	private static native void onAchievementsLoaded(Object arr, long data);
 	private static native void onLeaderboardScoresLoaded(String id, String name, Object scores, long data);
+	
+	private static native void onStateLoaded(int key, byte[] state, int fresh, long data);
+	private static native void onStateError(int key, String error, long data);
+	private static native void onStateConflict(int key, String ver, byte[] localState, byte[] serverState, long data);
+	private static native void onStateDeleted(int key, long data);
+	
 	private static native void onGameStarted(long data);
 	private static native void onInvitationReceived(String id, long data);
 	private static native void onJoinedRoom(String id, long data);
@@ -731,6 +850,5 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	public void onP2PDisconnected(String participantId) {
 		// TODO Auto-generated method stub
 		
-	}
-	
+	}	
 }

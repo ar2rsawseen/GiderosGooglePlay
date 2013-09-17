@@ -64,6 +64,10 @@ static const char* LOAD_SCORES_COMPLETE = "loadScoresComplete";
 static const char* REPORT_SCORE_COMPLETE = "reportScoreComplete";
 static const char* LOAD_ACHIEVEMENTS_COMPLETE = "loadAchievementsComplete";
 static const char* REPORT_ACHIEVEMENT_COMPLETE = "reportAchievementComplete";
+static const char* STATE_LOADED = "stateLoaded";
+static const char* STATE_ERROR = "stateError";
+static const char* STATE_CONFLICT = "stateConflict";
+static const char* STATE_DELETED = "stateDeleted";
 static const char* GAME_STARTED = "gameStarted";
 static const char* INVITATION_RECEIVED = "invitationReceived";
 static const char* JOINED_ROOM = "joinedRoom";
@@ -166,6 +170,26 @@ public:
 		gms_loadPlayerScores(id, span, collection, maxResults);
 	}
 	
+	void loadState(int key)
+	{
+		gms_loadState(key);
+	}
+	
+	void updateState(int key, const void* data, size_t size, int immediate)
+	{
+		gms_updateState(key, data, size, immediate);
+	}
+	
+	void resolveState(int key, const char* ver, const void* data, size_t size)
+	{
+		gms_resolveState(key, ver, data, size);
+	}
+	
+	void deleteState(int key)
+	{
+		gms_deleteState(key);
+	}
+	
 	void autoMatch(int minPlayers, int maxPlayers)
 	{
 		gms_autoMatch(minPlayers, maxPlayers);
@@ -266,6 +290,18 @@ private:
 			case GMS_REPORT_SCORE_COMPLETE_EVENT:
                 lua_pushstring(L, REPORT_SCORE_COMPLETE);
                 break;
+			case GMS_STATE_LOADED_EVENT:
+                lua_pushstring(L, STATE_LOADED);
+				 break;
+			case GMS_STATE_ERROR_EVENT:
+                lua_pushstring(L, STATE_ERROR);
+				 break;
+			case GMS_STATE_CONFLICT_EVENT:
+                lua_pushstring(L, STATE_CONFLICT);
+                break;
+			case GMS_STATE_DELETED_EVENT:
+                lua_pushstring(L, STATE_DELETED);
+                break;
 			case GMS_GAME_STARTED_EVENT:
                 lua_pushstring(L, GAME_STARTED);
                 break;
@@ -351,6 +387,52 @@ private:
 
 			lua_pushlstring(L, (const char*)event2->data, event2->size);
 			lua_setfield(L, -2, "data");
+		}
+		else if (type == GMS_STATE_LOADED_EVENT)
+		{
+            gms_StateLoaded *event2 = (gms_StateLoaded*)event;
+		
+			lua_pushnumber(L, event2->key);
+			lua_setfield(L, -2, "key");
+			
+			lua_pushboolean(L, (bool)event2->fresh);
+			lua_setfield(L, -2, "isFresh");
+
+			lua_pushlstring(L, (const char*)event2->data, event2->size);
+			lua_setfield(L, -2, "data");
+		}
+		else if (type == GMS_STATE_ERROR_EVENT)
+		{
+            gms_StateError *event2 = (gms_StateError*)event;
+			
+			lua_pushstring(L, event2->error);
+			lua_setfield(L, -2, "error");
+		
+			lua_pushnumber(L, event2->key);
+			lua_setfield(L, -2, "key");
+		}
+		else if (type == GMS_STATE_DELETED_EVENT)
+		{
+            gms_StateDeleted *event2 = (gms_StateDeleted*)event;
+			
+			lua_pushnumber(L, event2->key);
+			lua_setfield(L, -2, "key");
+		}
+		else if (type == GMS_STATE_CONFLICT_EVENT)
+		{
+            gms_StateConflict *event2 = (gms_StateConflict*)event;
+		
+			lua_pushnumber(L, event2->key);
+			lua_setfield(L, -2, "key");
+			
+			lua_pushstring(L, event2->ver);
+			lua_setfield(L, -2, "version");
+			
+			lua_pushlstring(L, (const char*)event2->localData, event2->localSize);
+			lua_setfield(L, -2, "localData");
+			
+			lua_pushlstring(L, (const char*)event2->serverData, event2->serverSize);
+			lua_setfield(L, -2, "serverData");
 		}
 		else if (type == GMS_LOAD_ACHIEVEMENTS_COMPLETE_EVENT)
         {
@@ -630,6 +712,67 @@ static int loadPlayerScores(lua_State* L)
 	return 0;
 }
 
+static int loadState(lua_State *L)
+{
+	GooglePlay *gms = getInstance(L, 1);
+	
+	int key = luaL_checknumber(L, 2);
+	
+	gms->loadState(key);
+	
+    return 0;
+}
+
+static int updateState(lua_State *L)
+{
+	GooglePlay *gms = getInstance(L, 1);
+	
+	int key = luaL_checknumber(L, 2);
+	
+	size_t size;
+    const void *data = luaL_checklstring(L, 3, &size);
+	
+    int immediate = 0;
+	if (!lua_isnoneornil(L, 4))
+	{
+		if(lua_isboolean(L, 4))
+		{
+			immediate = lua_toboolean(L, 4);
+		}
+	}
+	
+	gms->updateState(key, data, size, immediate);
+	
+    return 0;
+}
+
+static int resolveState(lua_State *L)
+{
+	GooglePlay *gms = getInstance(L, 1);
+	
+	int key = luaL_checknumber(L, 2);
+	
+	const char* ver = luaL_checkstring(L, 3);
+	
+	size_t size;
+    const void *data = luaL_checklstring(L, 4, &size);
+	
+	gms->resolveState(key, ver, data, size);
+	
+    return 0;
+}
+
+static int deleteState(lua_State *L)
+{
+	GooglePlay *gms = getInstance(L, 1);
+	
+	int key = luaL_checknumber(L, 2);
+	
+	gms->deleteState(key);
+	
+    return 0;
+}
+
 static int autoMatch(lua_State *L)
 {
 	GooglePlay *gms = getInstance(L, 1);
@@ -785,6 +928,10 @@ static int loader(lua_State *L)
         {"loadAchievements", loadAchievements},
         {"loadScores", loadScores},
         {"loadPlayerScores", loadPlayerScores},
+        {"loadState", loadState},
+        {"updateState", updateState},
+        {"resolveState", resolveState},
+        {"deleteState", deleteState},
         {"autoMatch", autoMatch},
         {"invitePlayers", invitePlayers},
         {"joinRoom", joinRoom},
@@ -817,6 +964,14 @@ static int loader(lua_State *L)
 	lua_setfield(L, -2, "LOAD_ACHIEVEMENTS_COMPLETE");
 	lua_pushstring(L, REPORT_ACHIEVEMENT_COMPLETE);
 	lua_setfield(L, -2, "REPORT_ACHIEVEMENT_COMPLETE");
+	lua_pushstring(L, STATE_LOADED);
+	lua_setfield(L, -2, "STATE_LOADED");
+	lua_pushstring(L, STATE_ERROR);
+	lua_setfield(L, -2, "STATE_ERROR");
+	lua_pushstring(L, STATE_CONFLICT);
+	lua_setfield(L, -2, "STATE_CONFLICT");
+	lua_pushstring(L, STATE_DELETED);
+	lua_setfield(L, -2, "STATE_DELETED");
 	lua_pushstring(L, GAME_STARTED);
 	lua_setfield(L, -2, "GAME_STARTED");
 	lua_pushstring(L, INVITATION_RECEIVED);
