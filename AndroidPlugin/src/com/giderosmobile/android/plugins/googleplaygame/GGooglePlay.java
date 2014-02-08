@@ -21,7 +21,6 @@ import com.google.android.gms.games.achievement.AchievementBuffer;
 import com.google.android.gms.games.achievement.OnAchievementUpdatedListener;
 import com.google.android.gms.games.achievement.OnAchievementsLoadedListener;
 import com.google.android.gms.games.leaderboard.Leaderboard;
-import com.google.android.gms.games.leaderboard.LeaderboardBuffer;
 import com.google.android.gms.games.leaderboard.LeaderboardScore;
 import com.google.android.gms.games.leaderboard.LeaderboardScoreBuffer;
 import com.google.android.gms.games.leaderboard.OnLeaderboardScoresLoadedListener;
@@ -312,7 +311,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     
     static public void loadAchievements(){
     	if(mHelper.isSignedIn())
-    		mHelper.getGamesClient().loadAchievements(sInstance);
+    		mHelper.getGamesClient().loadAchievements(sInstance, true);
     }
     
     static public void loadScores(String id, int span, int collection, int maxResults ){
@@ -550,13 +549,11 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 		buffer.close();
 	}
 	
-	
 	@Override
-	public void onLeaderboardScoresLoaded(int statusCode, LeaderboardBuffer leaderboard, LeaderboardScoreBuffer scores) {
+	public void onLeaderboardScoresLoaded(int statusCode, Leaderboard lb, LeaderboardScoreBuffer scores) {
 		if (sData != 0)
 		{
 			if(statusCode == GamesClient.STATUS_OK){
-				Leaderboard lb = leaderboard.get(0);
 				String leaderboardId =  lb.getLeaderboardId();
 				String leaderboardName = lb.getDisplayName();
 	
@@ -575,9 +572,8 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 				GGooglePlay.onLeaderboardScoresLoaded(leaderboardId, leaderboardName, lscores, sData);
 			}
 		}
-		leaderboard.close();
 		scores.close();
-	}
+	}	
 	
 	
 	@Override
@@ -841,14 +837,11 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 	private static native void onDataReceived(byte[] message, String sender, long data);
 
 	@Override
-	public void onP2PConnected(String participantId) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void onP2PConnected(String participantId) {}
 
 	@Override
-	public void onP2PDisconnected(String participantId) {
-		// TODO Auto-generated method stub
-		
-	}	
+	public void onP2PDisconnected(String participantId) {}
+
+	@Override
+	public void onInvitationRemoved(String arg0) {}
 }
