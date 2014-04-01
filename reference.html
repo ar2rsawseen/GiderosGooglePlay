@@ -16,7 +16,7 @@
 <li class='ios'>googleplay:reportAchievement(achId [, numSteps, immediate]) --achievement unlocked or progressed by specified amount of steps of total defined steps</li>
 <li class='ios'>googleplay:loadAchievements() --retrieve all defined achievemenets</li>
 <li class='ios'>googleplay:loadScores(leaderboardId [,timespan, participants, maxResults]) --retrieve all scores for specific leaderboard ina specific timespan for specific participans</li>
-<li class='ios'>googleplay:loadPlayerScores(leaderboardId [,timespan, participants, maxResults]) --retrieve all scores for specific leaderboard ina specific timespan for specific participans</li>
+<li class='ios'>googleplay:loadPlayerCenteredScores(leaderboardId [,timespan, participants, maxResults]) --retrieve all scores for specific leaderboard ina specific timespan for specific participans</li>
 <li>googleplay:autoMatch(minPlayers, maxPlayers) --create a quick game between randomly selected players</li>
 <li>googleplay:invitePlayers(minPlayers, maxPlayers) --allow user to invite players to a game</li>
 <li>googleplay:joinRoom(invitationId) --joins the game you've been invited to</li>
@@ -24,9 +24,9 @@
 <li>googleplay:showWaitingRoom(minPlayers) --show waiting room before the game with the list of players</li>
 <li>googleplay:sendTo(playerId, data, isReliable) --send data to specific user by id</li>
 <li>googleplay:sendToAll(data, isReliable) -- send to all users</li>
-<li class='ios'>googleplay:getCurrentPlayer() --get your current user name</li>
-<li class='ios'>googleplay:getCurrentPlayerId() --get your current user id</li>
-<li class='ios'>googleplay:getCurrentPlayerId() --get your current user id</li>
+<li class='ios'>googleplay:getPlayerName() --get your current user name</li>
+<li class='ios'>googleplay:getPlayerId() --get your current user id</li>
+<li class='ios'>googleplay:getPlayerScore() --dispatches PLAYER_SCORE_COMPLETE event</li>
 <li>googleplay:getAllPlayers() --retrieve information (id and name) for all users involved in game</li>
 <li class='ios'>googleplay:loadState(key) --load app state from slot key from the cloud</li>
 <li class='ios'>googleplay:updateState(key, data[, immediate]) --update app state for slot key with data bool immediate if it needs to be saved immediately</li>
@@ -88,6 +88,12 @@
 	<li class='ios'>event.scores[].score</li>
 	<li class='ios'>event.scores[].rank</li>
 	<li class='ios'>event.scores[].playerId</li>
+</ul>
+<li class='ios'>Event.PLAYER_SCORE_COMPLETE
+<ul>
+	<li class='ios'>event.rank</li>
+	<li class='ios'>event.score</li>
+	<li class='ios'>event.timestamp</li>
 </ul>
 </li>
 </ul>

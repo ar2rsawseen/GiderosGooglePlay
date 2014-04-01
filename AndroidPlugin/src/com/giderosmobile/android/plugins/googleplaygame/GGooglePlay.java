@@ -10,22 +10,26 @@ import android.os.Bundle;
 import android.util.SparseArray;
 
 import com.google.android.gms.appstate.AppStateClient;
-import com.google.android.gms.appstate.OnStateDeletedListener;
-import com.google.android.gms.appstate.OnStateLoadedListener;
+import com.google.android.gms.appstate.AppStateManager;
+import com.google.android.gms.appstate.AppStateManager.StateDeletedResult;
+import com.google.android.gms.appstate.AppStateManager.StateResult;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.games.Games;
 import com.google.android.gms.games.GamesActivityResultCodes;
 import com.google.android.gms.games.GamesClient;
+import com.google.android.gms.games.GamesStatusCodes;
 import com.google.android.gms.games.achievement.Achievement;
 import com.google.android.gms.games.achievement.AchievementBuffer;
-import com.google.android.gms.games.achievement.OnAchievementUpdatedListener;
-import com.google.android.gms.games.achievement.OnAchievementsLoadedListener;
-import com.google.android.gms.games.leaderboard.Leaderboard;
+import com.google.android.gms.games.achievement.Achievements.LoadAchievementsResult;
+import com.google.android.gms.games.achievement.Achievements.UpdateAchievementResult;
 import com.google.android.gms.games.leaderboard.LeaderboardScore;
 import com.google.android.gms.games.leaderboard.LeaderboardScoreBuffer;
-import com.google.android.gms.games.leaderboard.OnLeaderboardScoresLoadedListener;
-import com.google.android.gms.games.leaderboard.OnScoreSubmittedListener;
-import com.google.android.gms.games.leaderboard.SubmitScoreResult;
+import com.google.android.gms.games.leaderboard.Leaderboards;
+import com.google.android.gms.games.leaderboard.Leaderboards.LoadPlayerScoreResult;
+import com.google.android.gms.games.leaderboard.Leaderboards.LoadScoresResult;
 import com.google.android.gms.games.multiplayer.Invitation;
 import com.google.android.gms.games.multiplayer.OnInvitationReceivedListener;
 import com.google.android.gms.games.multiplayer.Participant;
@@ -36,8 +40,8 @@ import com.google.android.gms.games.multiplayer.realtime.RoomConfig;
 import com.google.android.gms.games.multiplayer.realtime.RoomStatusUpdateListener;
 import com.google.android.gms.games.multiplayer.realtime.RoomUpdateListener;
 
-public class GGooglePlay implements GameHelper.GameHelperListener, OnAchievementUpdatedListener, OnScoreSubmittedListener, OnAchievementsLoadedListener, OnLeaderboardScoresLoadedListener, RealTimeMessageReceivedListener,
-RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnStateLoadedListener, OnStateDeletedListener
+public class GGooglePlay implements GameHelper.GameHelperListener, RealTimeMessageReceivedListener,
+RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 {
 	private static WeakReference<Activity> sActivity;
 	private static GGooglePlay sInstance;
@@ -54,6 +58,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     final static int RC_INVITATION_INBOX = 10001;
     final static int RC_SELECT_PLAYERS = 10000;
     final static int RC_WAITING_ROOM = 10002;
+    static boolean signed = false;
     
     private static boolean mWaitingRoomFinishedFromCode = false;
     // The participants in the currently active game
@@ -64,8 +69,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     // Requested clients. By default, that's just the games client.
     protected static int mRequestedClients = CLIENT_APPSTATE|CLIENT_GAMES|CLIENT_PLUS;
 	
-	public static void onCreate(Activity activity)
-	{
+	public static void onCreate(Activity activity){
 		sActivity =  new WeakReference<Activity>(activity);
 	}
 
@@ -105,7 +109,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 					 .setRoomStatusUpdateListener(sInstance)
 					 .setInvitationIdToAccept(invitation.getInvitationId())
 					 .build();
-				 mHelper.getGamesClient().joinRoom(roomConfig);
+				 Games.RealTimeMultiplayer.join(mHelper.getApiClient(), roomConfig);
 			 }
 		 }
 		 else if (request == RC_SELECT_PLAYERS) {
@@ -143,7 +147,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 				 roomConfigBuilder.setAutoMatchCriteria(autoMatchCriteria);
 			 }
 			 RoomConfig roomConfig = roomConfigBuilder.build();
-			 mHelper.getGamesClient().createRoom(roomConfig);
+			 Games.RealTimeMultiplayer.create(mHelper.getApiClient(), roomConfig);
 		 }
 		 else if (request == RC_WAITING_ROOM) {
 			 if (response == Activity.RESULT_OK) {
@@ -163,11 +167,11 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 				 // continue to connect in the background.
 
 				 // in this example, we take the simple approach and just leave the room:
-				 mHelper.getGamesClient().leaveRoom(sInstance, currentRoom.getRoomId());
+				 Games.RealTimeMultiplayer.leave(mHelper.getApiClient(), sInstance, currentRoom.getRoomId());
 			 }
 			 else if (response == GamesActivityResultCodes.RESULT_LEFT_ROOM) {
 				 // player wants to leave the room.
-				 mHelper.getGamesClient().leaveRoom(sInstance, currentRoom.getRoomId());
+				 Games.RealTimeMultiplayer.leave(mHelper.getApiClient(), sInstance, currentRoom.getRoomId());
 			 }
 		 }
 	}
@@ -180,7 +184,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
                 continue;
             if (p.getStatus() != Participant.STATUS_JOINED)
                 continue;
-            mHelper.getGamesClient().sendReliableRealTimeMessage(null, msg, currentRoom.getRoomId(),
+            Games.RealTimeMultiplayer.sendReliableMessage(mHelper.getApiClient(),null, msg, currentRoom.getRoomId(),
                     p.getParticipantId());
         }
     }
@@ -188,9 +192,14 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 	static public void init(long data)
 	{
 		sData = data;
+		signed = false;
 		sInstance = new GGooglePlay();
-		mHelper = new GameHelper(sActivity.get());
-		mHelper.setup(sInstance, mRequestedClients);
+		sActivity.get().runOnUiThread(new Runnable() {
+            public void run() {
+            	mHelper = new GameHelper(sActivity.get(), mRequestedClients);
+            	mHelper.setup(sInstance);
+            }
+    	});
 	}
 	
 	
@@ -218,32 +227,33 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     }
     
     static public void login(){
-    	if(!mHelper.isSignedIn())
-    	{
-    		sActivity.get().runOnUiThread(new Runnable() {
-               public void run() {
+    	sActivity.get().runOnUiThread(new Runnable() {
+    		public void run() {
+    			if(!mHelper.isSignedIn())
+    	    	{
             	   mHelper.beginUserInitiatedSignIn();
-               }
-        	});
-    	}
+    	    	}
+            }
+        });
     }
     
     static public void logout(){
-    	if(mHelper.isSignedIn())
-    	{
-    		sActivity.get().runOnUiThread(new Runnable() {
-               public void run() {
+    	signed = false;
+    	sActivity.get().runOnUiThread(new Runnable() {
+    		public void run() {
+            	if(mHelper.isSignedIn())
+               	{
             	   mHelper.signOut();
-               }
-        	});
-    	}   
+               	}
+    		}
+    	});
     }
     
     static public void showSettings(){
     	sActivity.get().runOnUiThread(new Runnable() {
             public void run() {
             	if(mHelper.isSignedIn())
-            		sActivity.get().startActivityForResult(mHelper.getGamesClient().getSettingsIntent(), RC_UNUSED);
+            		sActivity.get().startActivityForResult(Games.getSettingsIntent(mHelper.getApiClient()), RC_UNUSED);
             }
     	});
     }
@@ -252,21 +262,34 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     	sActivity.get().runOnUiThread(new Runnable() {
             public void run() {
             	if(mHelper.isSignedIn())
-            		sActivity.get().startActivityForResult(mHelper.getGamesClient().getLeaderboardIntent(id), RC_UNUSED);
+            		sActivity.get().startActivityForResult(Games.Leaderboards.getLeaderboardIntent(mHelper.getApiClient(), id), RC_UNUSED);
             }
     	});
     }
     
     static public void reportScore(String id, long score, int immediate){
-    	if(mHelper.isSignedIn())
+    	if(mHelper != null && mHelper.isSignedIn())
     	{
     		if(immediate == 1)
     		{
-    			mHelper.getGamesClient().submitScoreImmediate(sInstance, id, score);
+    			PendingResult<Leaderboards.SubmitScoreResult> result = Games.Leaderboards.submitScoreImmediate(mHelper.getApiClient(), id, score);
+    			ResultCallback<Leaderboards.SubmitScoreResult> mResultCallback = new
+    		            ResultCallback<Leaderboards.SubmitScoreResult>() {
+    		        @Override
+    		        public void onResult(Leaderboards.SubmitScoreResult result) {
+    		        	if (sData != 0)
+    		    		{
+    		    			if(result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_OK){
+    		    				GGooglePlay.onScoreSubmitted(sData);
+    		    			}
+    		    		}
+    		        }
+    		    };
+    			result.setResultCallback(mResultCallback);
     		}
     		else
     		{
-    			mHelper.getGamesClient().submitScore(id, score);
+    			Games.Leaderboards.submitScore(mHelper.getApiClient(), id, score);
     		}
     	}
     }
@@ -276,91 +299,348 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     	sActivity.get().runOnUiThread(new Runnable() {
             public void run() {
             	if(mHelper.isSignedIn())
-            		sActivity.get().startActivityForResult(mHelper.getGamesClient().getAchievementsIntent(), RC_UNUSED);
+            		sActivity.get().startActivityForResult(Games.Achievements.getAchievementsIntent(mHelper.getApiClient()), RC_UNUSED);
             }
     	});
     }
     
     static public void reportAchievement(String id, int immediate){
-    	if(mHelper.isSignedIn())
+    	if(mHelper != null && mHelper.isSignedIn())
     	{
     		if(immediate == 1)
     		{
-    			mHelper.getGamesClient().unlockAchievementImmediate(sInstance, id);
+    			PendingResult<UpdateAchievementResult> result = Games.Achievements.unlockImmediate(mHelper.getApiClient(), id);
+    			ResultCallback<UpdateAchievementResult> mResultCallback = new
+    		            ResultCallback<UpdateAchievementResult>() {
+    		        @Override
+    		        public void onResult(UpdateAchievementResult result) {
+    		        	if (sData != 0)
+    		    		{
+    		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK || result.getStatus().getStatusCode() == GamesClient.STATUS_ACHIEVEMENT_UNLOCKED){
+    		    				GGooglePlay.onAchievementUpdated(result.getAchievementId(), sData);
+    		    			}
+    		    		}
+    		        }
+    		    };
+    			result.setResultCallback(mResultCallback);
     		}
     		else
     		{
-    			mHelper.getGamesClient().unlockAchievement(id);
+    			Games.Achievements.unlock(mHelper.getApiClient(), id);
     		}
     	}
     }
     
     static public void reportAchievement(String id, int numSteps, int immediate){
-    	if(mHelper.isSignedIn())
+    	if(mHelper != null && mHelper.isSignedIn())
     	{
     		if(immediate == 1)
     		{
-    			mHelper.getGamesClient().incrementAchievementImmediate(sInstance, id, numSteps);
+    			PendingResult<UpdateAchievementResult> result = Games.Achievements.incrementImmediate(mHelper.getApiClient(), id, numSteps);
+    			ResultCallback<UpdateAchievementResult> mResultCallback = new
+    		            ResultCallback<UpdateAchievementResult>() {
+    		        @Override
+    		        public void onResult(UpdateAchievementResult result) {
+    		        	if (sData != 0)
+    		    		{
+    		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK || result.getStatus().getStatusCode() == GamesClient.STATUS_ACHIEVEMENT_UNLOCKED){
+    		    				GGooglePlay.onAchievementUpdated(result.getAchievementId(), sData);
+    		    			}
+    		    		}
+    		        }
+    		    };
+    			result.setResultCallback(mResultCallback);
     		}
     		else
     		{
-    			mHelper.getGamesClient().incrementAchievement(id, numSteps);
+    			Games.Achievements.increment(mHelper.getApiClient(), id, numSteps);
     		}
     	}
     }
     
     static public void loadAchievements(){
-    	if(mHelper.isSignedIn())
-    		mHelper.getGamesClient().loadAchievements(sInstance, true);
+    	if(mHelper != null && mHelper.isSignedIn())
+    	{
+    		PendingResult<LoadAchievementsResult> result = Games.Achievements.load(mHelper.getApiClient(), true);
+    		ResultCallback<LoadAchievementsResult> mResultCallback = new
+		            ResultCallback<LoadAchievementsResult>() {
+		        @Override
+		        public void onResult(LoadAchievementsResult result) {
+		        	if (sData != 0)
+		    		{
+		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK){
+		    				SparseArray<Bundle> arr = new SparseArray<Bundle>();
+		    				AchievementBuffer buffer = result.getAchievements();
+		    				int size = buffer.getCount();
+		    				for(int i = 0; i < size; i++){
+		    					Achievement ach = buffer.get(i);
+		    					Bundle map = new Bundle();
+		    					map.putString("id", ach.getAchievementId());
+		    					map.putString("description", ach.getDescription());
+		    					map.putString("name", ach.getName());
+		    					map.putInt("lastUpdate", (int)(ach.getLastUpdatedTimestamp()/1000));
+		    					map.putInt("status", ach.getState()); //0-unlocked, 1-revealed, 2-hidden
+		    					if(ach.getType() == Achievement.TYPE_INCREMENTAL)
+		    					{
+		    						map.putInt("currentSteps", ach.getCurrentSteps());
+		    						map.putInt("totalSteps", ach.getTotalSteps());
+		    					}
+		    					arr.put(i, map);
+		    				}
+		    				GGooglePlay.onAchievementsLoaded(arr, sData);
+		    				buffer.close();
+		    			}
+		    		}
+		        }
+		    };
+    		result.setResultCallback(mResultCallback);
+    	}
     }
     
     static public void loadScores(String id, int span, int collection, int maxResults ){
-    	if(mHelper.isSignedIn())
-    		mHelper.getGamesClient().loadTopScores(sInstance, id, span, collection, maxResults);
+    	if(mHelper != null && mHelper.isSignedIn())
+    	{
+    		PendingResult<LoadScoresResult> result = Games.Leaderboards.loadTopScores(mHelper.getApiClient(), id, span, collection, maxResults);
+    		ResultCallback<LoadScoresResult> mResultCallback = new
+		            ResultCallback<LoadScoresResult>() {
+		        @Override
+		        public void onResult(LoadScoresResult result) {
+		        	if (sData != 0)
+		    		{
+		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK){
+		    				String leaderboardId =  result.getLeaderboard().getLeaderboardId();
+		    				String leaderboardName = result.getLeaderboard().getDisplayName();
+		    				LeaderboardScoreBuffer scores = result.getScores();
+		    				SparseArray<Bundle> lscores = new SparseArray<Bundle>();
+		    				int size = scores.getCount();
+		    				for(int i = 0; i < size; i++){
+		    					LeaderboardScore l = scores.get(i);
+		    					Bundle map = new Bundle();
+		    					map.putString("rank", l.getDisplayRank());
+		    					map.putString("score", l.getDisplayScore());
+		    					map.putString("name", l.getScoreHolderDisplayName());
+		    					map.putString("playerId", l.getScoreHolder().getPlayerId());
+		    					map.putInt("timestamp", (int)(l.getTimestampMillis()/1000));
+		    					lscores.put(i, map);
+		    				}
+		    				GGooglePlay.onLeaderboardScoresLoaded(leaderboardId, leaderboardName, lscores, sData);
+		    				scores.close();
+		    			}
+		    		}
+		        }
+		    };
+    		result.setResultCallback(mResultCallback);
+    	}
     }
     
     static public void loadPlayerScores(String id, int span, int collection, int maxResults ){
-    	if(mHelper.isSignedIn())
-    		mHelper.getGamesClient().loadPlayerCenteredScores(sInstance, id, span, collection, maxResults);
+    	if(mHelper != null && mHelper.isSignedIn())
+    	{
+    		PendingResult<LoadScoresResult> result = Games.Leaderboards.loadPlayerCenteredScores(mHelper.getApiClient(), id, span, collection, maxResults);
+    		ResultCallback<LoadScoresResult> mResultCallback = new
+		            ResultCallback<LoadScoresResult>() {
+		        @Override
+		        public void onResult(LoadScoresResult result) {
+		        	if (sData != 0)
+		    		{
+		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK){
+		    				String leaderboardId =  result.getLeaderboard().getLeaderboardId();
+		    				String leaderboardName = result.getLeaderboard().getDisplayName();
+		    				LeaderboardScoreBuffer scores = result.getScores();
+		    				SparseArray<Bundle> lscores = new SparseArray<Bundle>();
+		    				int size = scores.getCount();
+		    				for(int i = 0; i < size; i++){
+		    					LeaderboardScore l = scores.get(i);
+		    					Bundle map = new Bundle();
+		    					map.putString("rank", l.getDisplayRank());
+		    					map.putString("score", l.getDisplayScore());
+		    					map.putString("name", l.getScoreHolderDisplayName());
+		    					map.putString("playerId", l.getScoreHolder().getPlayerId());
+		    					map.putInt("timestamp", (int)(l.getTimestampMillis()/1000));
+		    					lscores.put(i, map);
+		    				}
+		    				GGooglePlay.onLeaderboardScoresLoaded(leaderboardId, leaderboardName, lscores, sData);
+		    				scores.close();
+		    			}
+		    		}
+		        }
+		    };
+    		result.setResultCallback(mResultCallback);
+    	}
     }
     
     /*CLOUD STUFF*/
     
-    static public void loadState(int key){
-    	if (mHelper.isSignedIn()) {
-    		mHelper.getAppStateClient().loadState(sInstance, key);
+    static public void loadState(final int key){
+    	if (mHelper != null && mHelper.isSignedIn()) {
+    		PendingResult<StateResult> result = AppStateManager.load(mHelper.getApiClient(), key);
+    		ResultCallback<StateResult> mResultCallback = new
+		            ResultCallback<StateResult>() {
+		        @Override
+		        public void onResult(StateResult result) {
+		        	int statusCode = result.getStatus().getStatusCode();
+		        	int stateKey = key;
+		        	result.getLoadedResult();
+		        	if (statusCode == AppStateClient.STATUS_OK || statusCode == AppStateClient.STATUS_NETWORK_ERROR_STALE_DATA) {
+		        		
+		        		AppStateManager.StateConflictResult conflictResult = result.getConflictResult();
+		                AppStateManager.StateLoadedResult loadedResult = result.getLoadedResult();
+		                if (loadedResult != null) {
+		                	if (sData != 0)
+		                	{
+			    				GGooglePlay.onStateLoaded(stateKey, loadedResult.getLocalData(), 1, sData);
+		                	}
+		                } else if (conflictResult != null) {
+		                	if (sData != 0)
+		            			GGooglePlay.onStateConflict(stateKey, conflictResult.getResolvedVersion(), conflictResult.getLocalData(), conflictResult.getServerData(), sData);
+		                }
+		    		} else {
+		    			if (sData != 0)
+		    			{
+		    				String error = "unknown error";
+		    				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
+		    				{
+		    					error = "need to reconnect client";
+		    				}
+		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
+		    				{
+		    					error = "could not connect server";
+		    				}
+		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_NO_DATA)
+		    				{
+		    					error = "could not connect server";
+		    				}
+		    				else if(statusCode == AppStateClient.STATUS_STATE_KEY_NOT_FOUND)
+		    				{
+		    					error = "no data";
+		    				}
+		    				else if(statusCode == AppStateClient.STATUS_STATE_KEY_LIMIT_EXCEEDED)
+		    				{
+		    					error = "key limit exceeded";
+		    				}
+		    				else if(statusCode == AppStateClient.STATUS_WRITE_SIZE_EXCEEDED)
+		    				{
+		    					error = "too much data passed";
+		    				}
+		    				GGooglePlay.onStateError(stateKey, error, sData);
+		    			}
+		    		}
+		        }
+		    };
+    		result.setResultCallback(mResultCallback);
     	}
     }
     
-    static public void updateState(int key, byte[] state, int immediate){
-    	if (mHelper.isSignedIn()) {
+    static public void updateState(final int key, byte[] state, int immediate){
+    	if (mHelper != null && mHelper.isSignedIn()) {
     		if(immediate == 1)
     		{
-    			mHelper.getAppStateClient().updateStateImmediate(sInstance, key, state);
+    			PendingResult<StateResult> result = AppStateManager.updateImmediate(mHelper.getApiClient(), key, state);
+    			ResultCallback<StateResult> mResultCallback = new
+    		            ResultCallback<StateResult>() {
+    		        @Override
+    		        public void onResult(StateResult result) {
+    		        	int statusCode = result.getStatus().getStatusCode();
+    		        	int stateKey = key;
+    		        	result.getLoadedResult();
+    		        	if (statusCode == AppStateClient.STATUS_OK || statusCode == AppStateClient.STATUS_NETWORK_ERROR_STALE_DATA) {
+    		        		
+    		        		AppStateManager.StateConflictResult conflictResult = result.getConflictResult();
+    		                AppStateManager.StateLoadedResult loadedResult = result.getLoadedResult();
+    		                if (loadedResult != null) {
+    		                	if (sData != 0)
+    			    				GGooglePlay.onStateLoaded(stateKey, loadedResult.getLocalData(), 1, sData);
+    		                } else if (conflictResult != null) {
+    		                	if (sData != 0)
+    		            			GGooglePlay.onStateConflict(stateKey, conflictResult.getResolvedVersion(), conflictResult.getLocalData(), conflictResult.getServerData(), sData);
+    		                }
+    		    		} else {
+    		    			if (sData != 0)
+    		    			{
+    		    				String error = "unknown error";
+    		    				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
+    		    				{
+    		    					error = "need to reconnect client";
+    		    				}
+    		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
+    		    				{
+    		    					error = "could not connect server";
+    		    				}
+    		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_NO_DATA)
+    		    				{
+    		    					error = "could not connect server";
+    		    				}
+    		    				else if(statusCode == AppStateClient.STATUS_STATE_KEY_NOT_FOUND)
+    		    				{
+    		    					error = "no data";
+    		    				}
+    		    				else if(statusCode == AppStateClient.STATUS_STATE_KEY_LIMIT_EXCEEDED)
+    		    				{
+    		    					error = "key limit exceeded";
+    		    				}
+    		    				else if(statusCode == AppStateClient.STATUS_WRITE_SIZE_EXCEEDED)
+    		    				{
+    		    					error = "too much data passed";
+    		    				}
+    		    				GGooglePlay.onStateError(stateKey, error, sData);
+    		    			}
+    		    		}
+    		        }
+    		    };
+    			result.setResultCallback(mResultCallback);
     		}
     		else
     		{
-    			mHelper.getAppStateClient().updateState(key, state);
+    			AppStateManager.update(mHelper.getApiClient(), key, state);
     		}
     	}
     }
     
     static public void resolveState(int key, String version, byte[] state){
-    	if (mHelper.isSignedIn()) {
-    		mHelper.getAppStateClient().resolveState(sInstance, key, version, state);
+    	if (mHelper != null && mHelper.isSignedIn()) {
+    		AppStateManager.resolve(mHelper.getApiClient(),key, version, state);
     	}
     }
     
-    static public void deleteState(int key){
-    	if (mHelper.isSignedIn()) {
-    		mHelper.getAppStateClient().deleteState(sInstance, key);
+    static public void deleteState(final int key){
+    	if (mHelper != null && mHelper.isSignedIn()) {
+    		PendingResult<StateDeletedResult> result = AppStateManager.delete(mHelper.getApiClient(), key);
+    		ResultCallback<StateDeletedResult> mResultCallback = new
+		            ResultCallback<StateDeletedResult>() {
+		        @Override
+		        public void onResult(StateDeletedResult result) {
+		        	int statusCode = result.getStatus().getStatusCode();
+		        	int stateKey = key;
+		        	if (statusCode == AppStateClient.STATUS_OK) {
+		    			if (sData != 0)
+		    				GGooglePlay.onStateDeleted(stateKey, sData);
+		    		}
+		    		else
+		    		{
+		    			if (sData != 0)
+		    			{
+		    				String error = "unknown error";
+		    				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
+		    				{
+		    					error = "need to reconnect client";
+		    				}
+		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
+		    				{
+		    					error = "could not connect server";
+		    				}
+		    				GGooglePlay.onStateError(stateKey, error, sData);
+		    			}
+		    		}
+		        }
+		    };
+    		result.setResultCallback(mResultCallback);
     	}
     }
     
    /*MULTIPLAYER STUFF*/
     
     static public void autoMatch(int minPlayers, int maxPlayers) {
-    	if(mHelper.isSignedIn())
+    	if(mHelper != null && mHelper.isSignedIn())
     	{
     		// automatch criteria to invite 1 random automatch opponent.  
     		// You can also specify more opponents (up to 3). 
@@ -374,7 +654,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     		RoomConfig roomConfig = roomConfigBuilder.build();
 
     		// create room:
-    		mHelper.getGamesClient().createRoom(roomConfig);
+    		Games.RealTimeMultiplayer.create(mHelper.getApiClient(), roomConfig);
     	}
 
     }
@@ -383,19 +663,19 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     	sActivity.get().runOnUiThread(new Runnable() {
             public void run() {
             	if(mHelper.isSignedIn())
-            		sActivity.get().startActivityForResult(mHelper.getGamesClient().getSelectPlayersIntent(minPlayers, maxPlayers), RC_SELECT_PLAYERS);
+            		sActivity.get().startActivityForResult(Games.RealTimeMultiplayer.getSelectOpponentsIntent(mHelper.getApiClient(), minPlayers, maxPlayers), RC_SELECT_PLAYERS);
             }
     	});
     }
     
     static public void joinRoom(String id){
-    	if(mHelper.isSignedIn())
+    	if(mHelper != null && mHelper.isSignedIn())
     	{
     		RoomConfig.Builder roomConfigBuilder = RoomConfig.builder(sInstance)
                 .setMessageReceivedListener(sInstance)
                 .setRoomStatusUpdateListener(sInstance);
     		roomConfigBuilder.setInvitationIdToAccept(id);
-    		mHelper.getGamesClient().joinRoom(roomConfigBuilder.build());
+    		Games.RealTimeMultiplayer.join(mHelper.getApiClient(), roomConfigBuilder.build());
     	}
     }
     
@@ -403,7 +683,9 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     	sActivity.get().runOnUiThread(new Runnable() {
             public void run() {
             	if(mHelper.isSignedIn())
-            		sActivity.get().startActivityForResult(mHelper.getGamesClient().getInvitationInboxIntent(), RC_WAITING_ROOM);
+            	{
+            		sActivity.get().startActivityForResult(Games.Invitations.getInvitationInboxIntent(mHelper.getApiClient()), RC_WAITING_ROOM);
+            	}
             }
     	});
     }
@@ -412,51 +694,86 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
     	sActivity.get().runOnUiThread(new Runnable() {
             public void run() {
             	if(mHelper.isSignedIn() && currentRoom != null)
-            		sActivity.get().startActivityForResult(mHelper.getGamesClient().getRealTimeWaitingRoomIntent(currentRoom, minPlayers), RC_WAITING_ROOM);
+            		sActivity.get().startActivityForResult(Games.RealTimeMultiplayer.getWaitingRoomIntent(mHelper.getApiClient(), currentRoom, minPlayers), RC_WAITING_ROOM);
             }
     	});
     }
     
     static public void sendTo(String id, byte[] message, int isReliable){
-    	if(mHelper.isSignedIn())
+    	if(mHelper != null && mHelper.isSignedIn())
     	{
     		if(isReliable == 1){
-    			mHelper.getGamesClient().sendReliableRealTimeMessage(null, message, currentRoom.getRoomId(), id);
+    			Games.RealTimeMultiplayer.sendReliableMessage(mHelper.getApiClient(), null, message, currentRoom.getRoomId(), id);
     		}
     		else
     		{
-    			mHelper.getGamesClient().sendUnreliableRealTimeMessage(message, currentRoom.getRoomId(), id);
+    			Games.RealTimeMultiplayer.sendUnreliableMessage(mHelper.getApiClient(), message, currentRoom.getRoomId(), id);
     		}
     	}
     }
     
     static public void sendToAll(byte[] message, int isReliable){
-    	if(mHelper.isSignedIn())
+    	if(mHelper != null && mHelper.isSignedIn())
     	{
     		if(isReliable == 1){
     			for (Participant p : mParticipants) {
     				if (!p.getParticipantId().equals(mMyId)) {
-    					mHelper.getGamesClient().sendReliableRealTimeMessage(null, message, currentRoom.getRoomId(), p.getParticipantId());
+    					Games.RealTimeMultiplayer.sendReliableMessage(mHelper.getApiClient(), null, message, currentRoom.getRoomId(), p.getParticipantId());
     				}
     			}
     		}
     		else
     		{
-    			mHelper.getGamesClient().sendUnreliableRealTimeMessageToAll(message, currentRoom.getRoomId());
+    			Games.RealTimeMultiplayer.sendUnreliableMessageToAll(mHelper.getApiClient(), message, currentRoom.getRoomId());
     		}
     	}
     }
     
     static public String getCurrentPlayer(){
-    	if(mHelper.isSignedIn())
-    		return mHelper.getGamesClient().getCurrentPlayer().getDisplayName();
+    	if(mHelper != null && mHelper.isSignedIn())
+    		return Games.Players.getCurrentPlayer(mHelper.getApiClient()).getDisplayName();
     	return "";
     }
     
     static public String getCurrentPlayerId(){
-    	if(mHelper.isSignedIn())
-    		return mHelper.getGamesClient().getCurrentPlayer().getPlayerId();
+    	if(mHelper != null && mHelper.isSignedIn())
+    		return Games.Players.getCurrentPlayerId(mHelper.getApiClient());
     	return "";
+    }
+    
+    static public String getPlayerPicture(String id, int highRes){
+    	if(mHelper != null && mHelper.isSignedIn())
+    	{
+    		if(highRes == 0 && Games.Players.getCurrentPlayer(mHelper.getApiClient()).hasHiResImage())
+    			return Games.Players.getCurrentPlayer(mHelper.getApiClient()).getHiResImageUri().toString();
+    		if(Games.Players.getCurrentPlayer(mHelper.getApiClient()).hasIconImage())
+    			return Games.Players.getCurrentPlayer(mHelper.getApiClient()).getIconImageUri().toString();
+    	}
+    	return "";
+    }
+    
+    static public void getCurrentPlayerScore(String leaderboardId, int span, int leaderboardCollection){
+    	if(mHelper != null && mHelper.isSignedIn())
+    	{
+    		PendingResult<LoadPlayerScoreResult> result = Games.Leaderboards.loadCurrentPlayerLeaderboardScore(mHelper.getApiClient(), leaderboardId, span, leaderboardCollection);
+    		ResultCallback<LoadPlayerScoreResult> mResultCallback = new
+		            ResultCallback<LoadPlayerScoreResult>() {
+		        @Override
+		        public void onResult(LoadPlayerScoreResult result) {
+		    		if (sData != 0)
+		    		{
+		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK){
+		    				LeaderboardScore score = result.getScore();
+		    				if(score != null)
+		    					GGooglePlay.onPlayerScore(score.getDisplayRank(), score.getDisplayScore(), (int)(score.getTimestampMillis()/1000), sData);
+		    				else
+		    					GGooglePlay.onPlayerScore("0", "0", 0, sData);
+		    			}
+		    		}
+		        }
+		    };
+    		result.setResultCallback(mResultCallback);
+    	}
     }
     
     static public Object getAllPlayers(){
@@ -489,92 +806,21 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 	public void onSignInSucceeded() {
 		if (sData != 0)
 		{
-			GGooglePlay.onSignInSucceeded(sData);
-			mHelper.getGamesClient().registerInvitationListener(sInstance);
-			 if (mHelper.getInvitationId() != null) {
-				 //invitation already there
-				 GGooglePlay.onInvitationReceived(mHelper.getInvitationId(), sData);
-			 }
-		}
-	}
-
-	@Override
-	public void onAchievementUpdated(int statusCode, String achievementId) {
-		if (sData != 0)
-		{
-			if(statusCode == GamesClient.STATUS_OK || statusCode == GamesClient.STATUS_ACHIEVEMENT_UNLOCKED){
-				GGooglePlay.onAchievementUpdated(achievementId, sData);
-			}
-		}
-		
-	}
-	//check if successful
-	
-	@Override
-	public void onScoreSubmitted(int statusCode, SubmitScoreResult result) {
-		if (sData != 0)
-		{
-			if(statusCode == GamesClient.STATUS_OK){
-				GGooglePlay.onScoreSubmitted(sData);
-			}
-		}
-	}
-
-	
-	@Override
-	public void onAchievementsLoaded(int statusCode, AchievementBuffer buffer) {
-		if (sData != 0)
-		{
-			if(statusCode == GamesClient.STATUS_OK){
-				SparseArray<Bundle> arr = new SparseArray<Bundle>();
-				int size = buffer.getCount();
-				for(int i = 0; i < size; i++){
-					Achievement ach = buffer.get(i);
-					Bundle map = new Bundle();
-					map.putString("id", ach.getAchievementId());
-					map.putString("description", ach.getDescription());
-					map.putString("name", ach.getName());
-					map.putInt("lastUpdate", (int)(ach.getLastUpdatedTimestamp()/1000));
-					map.putInt("status", ach.getState()); //0-unlocked, 1-revealed, 2-hidden
-					if(ach.getType() == Achievement.TYPE_INCREMENTAL)
-					{
-						map.putInt("currentSteps", ach.getCurrentSteps());
-						map.putInt("totalSteps", ach.getTotalSteps());
+			if(!signed)
+			{
+				signed = true;
+				GGooglePlay.onSignInSucceeded(sData);
+				if(mHelper.getApiClient().isConnected())
+				{
+					Games.Invitations.registerInvitationListener(mHelper.getApiClient(), sInstance);
+					if (mHelper.getInvitationId() != null) {
+						//invitation already there
+						GGooglePlay.onInvitationReceived(mHelper.getInvitationId(), sData);
 					}
-					arr.put(i, map);
 				}
-				GGooglePlay.onAchievementsLoaded(arr, sData);
 			}
 		}
-		buffer.close();
 	}
-	
-	@Override
-	public void onLeaderboardScoresLoaded(int statusCode, Leaderboard lb, LeaderboardScoreBuffer scores) {
-		if (sData != 0)
-		{
-			if(statusCode == GamesClient.STATUS_OK){
-				String leaderboardId =  lb.getLeaderboardId();
-				String leaderboardName = lb.getDisplayName();
-	
-				SparseArray<Bundle> lscores = new SparseArray<Bundle>();
-				int size = scores.getCount();
-				for(int i = 0; i < size; i++){
-					LeaderboardScore l = scores.get(i);
-					Bundle map = new Bundle();
-					map.putString("rank", l.getDisplayRank());
-					map.putString("score", l.getDisplayScore());
-					map.putString("name", l.getScoreHolderDisplayName());
-					map.putString("playerId", l.getScoreHolder().getPlayerId());
-					map.putInt("timestamp", (int)(l.getTimestampMillis()/1000));
-					lscores.put(i, map);
-				}
-				GGooglePlay.onLeaderboardScoresLoaded(leaderboardId, leaderboardName, lscores, sData);
-			}
-		}
-		scores.close();
-	}	
-	
 	
 	@Override
 	public void onInvitationReceived(Invitation invitation) {
@@ -636,7 +882,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 	public void onConnectedToRoom(Room room) {
 		//http://developer.android.com/reference/com/google/android/gms/games/multiplayer/realtime/RoomStatusUpdateListener.html
 		mParticipants = room.getParticipants();
-        mMyId = room.getParticipantId(mHelper.getGamesClient().getCurrentPlayerId());
+        mMyId = room.getParticipantId(Games.Players.getCurrentPlayerId(mHelper.getApiClient()));
         if (sData != 0)
 			GGooglePlay.onConnectedToRoom(room.getRoomId(), sData);
 	}
@@ -644,7 +890,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 	@Override
 	public void onDisconnectedFromRoom(Room room) {
 		//http://developer.android.com/reference/com/google/android/gms/games/multiplayer/realtime/RoomStatusUpdateListener.html
-		mHelper.getGamesClient().leaveRoom(sInstance, room.getRoomId());
+		Games.RealTimeMultiplayer.leave(mHelper.getApiClient(), sInstance, room.getRoomId());
 		currentRoom = null;
 		if (sData != 0)
 			GGooglePlay.onDisconnectedFromRoom(room.getRoomId(), sData);
@@ -732,86 +978,14 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, OnSt
 	    }
 	}
 	
-	@Override
-	public void onStateConflict(int stateKey, String ver,
-            byte[] localData, byte[] serverData) {
-		if (sData != 0)
-			GGooglePlay.onStateConflict(stateKey, ver, localData, serverData, sData);
-	}
-
-	@Override
-	public void onStateLoaded(int statusCode, int stateKey, byte[] data) {
-		if (statusCode == AppStateClient.STATUS_OK) {
-			if (sData != 0)
-				GGooglePlay.onStateLoaded(stateKey, data, 1, sData);
-		}
-		else if (statusCode == AppStateClient.STATUS_NETWORK_ERROR_STALE_DATA) {
-			if (sData != 0)
-				GGooglePlay.onStateLoaded(stateKey, data, 0, sData);
-		} else {
-			if (sData != 0)
-			{
-				String error = "unknown error";
-				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
-				{
-					error = "need to reconnect client";
-				}
-				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
-				{
-					error = "could not connect server";
-				}
-				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_NO_DATA)
-				{
-					error = "could not connect server";
-				}
-				else if(statusCode == AppStateClient.STATUS_STATE_KEY_NOT_FOUND)
-				{
-					error = "no data";
-				}
-				else if(statusCode == AppStateClient.STATUS_STATE_KEY_LIMIT_EXCEEDED)
-				{
-					error = "key limit exceeded";
-				}
-				else if(statusCode == AppStateClient.STATUS_WRITE_SIZE_EXCEEDED)
-				{
-					error = "too much data passed";
-				}
-				GGooglePlay.onStateError(stateKey, error, sData);
-			}
-		}
-	}
-	
-	@Override
-	public void onStateDeleted(int statusCode, int stateKey) {
-		if (statusCode == AppStateClient.STATUS_OK) {
-			if (sData != 0)
-				GGooglePlay.onStateDeleted(stateKey, sData);
-		}
-		else
-		{
-			if (sData != 0)
-			{
-				String error = "unknown error";
-				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
-				{
-					error = "need to reconnect client";
-				}
-				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
-				{
-					error = "could not connect server";
-				}
-				GGooglePlay.onStateError(stateKey, error, sData);
-			}
-		}
-		
-	}
-	
 	private static native void onSignInFailed(long data);
 	private static native void onSignInSucceeded(long data);
 	private static native void onAchievementUpdated(String id, long data);
 	private static native void onScoreSubmitted(long data);
 	private static native void onAchievementsLoaded(Object arr, long data);
 	private static native void onLeaderboardScoresLoaded(String id, String name, Object scores, long data);
+	private static native void onPlayerScore(String rank, String score, int timestamp, long data);
+	private static native void onPlayerImage(String id, String path, long data);
 	
 	private static native void onStateLoaded(int key, byte[] state, int fresh, long data);
 	private static native void onStateError(int key, String error, long data);
