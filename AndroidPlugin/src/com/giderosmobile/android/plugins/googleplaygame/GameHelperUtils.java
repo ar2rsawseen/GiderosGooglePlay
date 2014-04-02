@@ -30,8 +30,8 @@ class GameHelperUtils {
     };
 
     private final static int[] RES_IDS = {
-            0, 0,
-            0, 0
+            -1, -1,
+            -1, -1
     };
 
     static String activityResponseCodeToString(int respCode) {

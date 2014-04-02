@@ -9,17 +9,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.SparseArray;
 
-import com.google.android.gms.appstate.AppStateClient;
 import com.google.android.gms.appstate.AppStateManager;
 import com.google.android.gms.appstate.AppStateManager.StateDeletedResult;
 import com.google.android.gms.appstate.AppStateManager.StateResult;
+import com.google.android.gms.appstate.AppStateStatusCodes;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.games.Games;
 import com.google.android.gms.games.GamesActivityResultCodes;
-import com.google.android.gms.games.GamesClient;
 import com.google.android.gms.games.GamesStatusCodes;
 import com.google.android.gms.games.achievement.Achievement;
 import com.google.android.gms.games.achievement.AchievementBuffer;
@@ -31,6 +30,7 @@ import com.google.android.gms.games.leaderboard.Leaderboards;
 import com.google.android.gms.games.leaderboard.Leaderboards.LoadPlayerScoreResult;
 import com.google.android.gms.games.leaderboard.Leaderboards.LoadScoresResult;
 import com.google.android.gms.games.multiplayer.Invitation;
+import com.google.android.gms.games.multiplayer.Multiplayer;
 import com.google.android.gms.games.multiplayer.OnInvitationReceivedListener;
 import com.google.android.gms.games.multiplayer.Participant;
 import com.google.android.gms.games.multiplayer.realtime.RealTimeMessage;
@@ -100,7 +100,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 			 }
 			 Bundle extras = data.getExtras();
 			 Invitation invitation =
-		            extras.getParcelable(GamesClient.EXTRA_INVITATION);
+		            extras.getParcelable(Multiplayer.EXTRA_INVITATION);
 			 if(invitation != null)
 			 {
 				 // accept it!
@@ -121,14 +121,14 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 			 //Log.d("GiderosPlay", "selecting");
 			 // get the invitee list
 			 final ArrayList<String> invitees =
-					 data.getStringArrayListExtra(GamesClient.EXTRA_PLAYERS);
+					 data.getStringArrayListExtra(Games.EXTRA_PLAYER_IDS);
 
 			 // get automatch criteria
 			 Bundle autoMatchCriteria = null;
 			 int minAutoMatchPlayers =
-					 data.getIntExtra(GamesClient.EXTRA_MIN_AUTOMATCH_PLAYERS, 0);
+					 data.getIntExtra(Multiplayer.EXTRA_MIN_AUTOMATCH_PLAYERS, 0);
 			 int maxAutoMatchPlayers =
-					 data.getIntExtra(GamesClient.EXTRA_MAX_AUTOMATCH_PLAYERS, 0);
+					 data.getIntExtra(Multiplayer.EXTRA_MAX_AUTOMATCH_PLAYERS, 0);
 
 			 if (minAutoMatchPlayers > 0) {
 				 autoMatchCriteria =
@@ -316,7 +316,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     		        public void onResult(UpdateAchievementResult result) {
     		        	if (sData != 0)
     		    		{
-    		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK || result.getStatus().getStatusCode() == GamesClient.STATUS_ACHIEVEMENT_UNLOCKED){
+    		    			if(result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_OK || result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_ACHIEVEMENT_UNLOCKED){
     		    				GGooglePlay.onAchievementUpdated(result.getAchievementId(), sData);
     		    			}
     		    		}
@@ -343,7 +343,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     		        public void onResult(UpdateAchievementResult result) {
     		        	if (sData != 0)
     		    		{
-    		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK || result.getStatus().getStatusCode() == GamesClient.STATUS_ACHIEVEMENT_UNLOCKED){
+    		    			if(result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_OK || result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_ACHIEVEMENT_UNLOCKED){
     		    				GGooglePlay.onAchievementUpdated(result.getAchievementId(), sData);
     		    			}
     		    		}
@@ -368,7 +368,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		        public void onResult(LoadAchievementsResult result) {
 		        	if (sData != 0)
 		    		{
-		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK){
+		    			if(result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_OK){
 		    				SparseArray<Bundle> arr = new SparseArray<Bundle>();
 		    				AchievementBuffer buffer = result.getAchievements();
 		    				int size = buffer.getCount();
@@ -407,7 +407,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		        public void onResult(LoadScoresResult result) {
 		        	if (sData != 0)
 		    		{
-		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK){
+		    			if(result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_OK){
 		    				String leaderboardId =  result.getLeaderboard().getLeaderboardId();
 		    				String leaderboardName = result.getLeaderboard().getDisplayName();
 		    				LeaderboardScoreBuffer scores = result.getScores();
@@ -443,7 +443,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		        public void onResult(LoadScoresResult result) {
 		        	if (sData != 0)
 		    		{
-		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK){
+		    			if(result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_OK){
 		    				String leaderboardId =  result.getLeaderboard().getLeaderboardId();
 		    				String leaderboardName = result.getLeaderboard().getDisplayName();
 		    				LeaderboardScoreBuffer scores = result.getScores();
@@ -481,7 +481,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		        	int statusCode = result.getStatus().getStatusCode();
 		        	int stateKey = key;
 		        	result.getLoadedResult();
-		        	if (statusCode == AppStateClient.STATUS_OK || statusCode == AppStateClient.STATUS_NETWORK_ERROR_STALE_DATA) {
+		        	if (statusCode == AppStateStatusCodes.STATUS_OK || statusCode == AppStateStatusCodes.STATUS_NETWORK_ERROR_STALE_DATA) {
 		        		
 		        		AppStateManager.StateConflictResult conflictResult = result.getConflictResult();
 		                AppStateManager.StateLoadedResult loadedResult = result.getLoadedResult();
@@ -498,27 +498,27 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		    			if (sData != 0)
 		    			{
 		    				String error = "unknown error";
-		    				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
+		    				if(statusCode == AppStateStatusCodes.STATUS_CLIENT_RECONNECT_REQUIRED)
 		    				{
 		    					error = "need to reconnect client";
 		    				}
-		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
+		    				else if(statusCode == AppStateStatusCodes.STATUS_NETWORK_ERROR_OPERATION_FAILED)
 		    				{
 		    					error = "could not connect server";
 		    				}
-		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_NO_DATA)
+		    				else if(statusCode == AppStateStatusCodes.STATUS_NETWORK_ERROR_NO_DATA)
 		    				{
 		    					error = "could not connect server";
 		    				}
-		    				else if(statusCode == AppStateClient.STATUS_STATE_KEY_NOT_FOUND)
+		    				else if(statusCode == AppStateStatusCodes.STATUS_STATE_KEY_NOT_FOUND)
 		    				{
 		    					error = "no data";
 		    				}
-		    				else if(statusCode == AppStateClient.STATUS_STATE_KEY_LIMIT_EXCEEDED)
+		    				else if(statusCode == AppStateStatusCodes.STATUS_STATE_KEY_LIMIT_EXCEEDED)
 		    				{
 		    					error = "key limit exceeded";
 		    				}
-		    				else if(statusCode == AppStateClient.STATUS_WRITE_SIZE_EXCEEDED)
+		    				else if(statusCode == AppStateStatusCodes.STATUS_WRITE_SIZE_EXCEEDED)
 		    				{
 		    					error = "too much data passed";
 		    				}
@@ -543,7 +543,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     		        	int statusCode = result.getStatus().getStatusCode();
     		        	int stateKey = key;
     		        	result.getLoadedResult();
-    		        	if (statusCode == AppStateClient.STATUS_OK || statusCode == AppStateClient.STATUS_NETWORK_ERROR_STALE_DATA) {
+    		        	if (statusCode == AppStateStatusCodes.STATUS_OK || statusCode == AppStateStatusCodes.STATUS_NETWORK_ERROR_STALE_DATA) {
     		        		
     		        		AppStateManager.StateConflictResult conflictResult = result.getConflictResult();
     		                AppStateManager.StateLoadedResult loadedResult = result.getLoadedResult();
@@ -558,27 +558,27 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     		    			if (sData != 0)
     		    			{
     		    				String error = "unknown error";
-    		    				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
+    		    				if(statusCode == AppStateStatusCodes.STATUS_CLIENT_RECONNECT_REQUIRED)
     		    				{
     		    					error = "need to reconnect client";
     		    				}
-    		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
+    		    				else if(statusCode == AppStateStatusCodes.STATUS_NETWORK_ERROR_OPERATION_FAILED)
     		    				{
     		    					error = "could not connect server";
     		    				}
-    		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_NO_DATA)
+    		    				else if(statusCode == AppStateStatusCodes.STATUS_NETWORK_ERROR_NO_DATA)
     		    				{
     		    					error = "could not connect server";
     		    				}
-    		    				else if(statusCode == AppStateClient.STATUS_STATE_KEY_NOT_FOUND)
+    		    				else if(statusCode == AppStateStatusCodes.STATUS_STATE_KEY_NOT_FOUND)
     		    				{
     		    					error = "no data";
     		    				}
-    		    				else if(statusCode == AppStateClient.STATUS_STATE_KEY_LIMIT_EXCEEDED)
+    		    				else if(statusCode == AppStateStatusCodes.STATUS_STATE_KEY_LIMIT_EXCEEDED)
     		    				{
     		    					error = "key limit exceeded";
     		    				}
-    		    				else if(statusCode == AppStateClient.STATUS_WRITE_SIZE_EXCEEDED)
+    		    				else if(statusCode == AppStateStatusCodes.STATUS_WRITE_SIZE_EXCEEDED)
     		    				{
     		    					error = "too much data passed";
     		    				}
@@ -611,7 +611,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		        public void onResult(StateDeletedResult result) {
 		        	int statusCode = result.getStatus().getStatusCode();
 		        	int stateKey = key;
-		        	if (statusCode == AppStateClient.STATUS_OK) {
+		        	if (statusCode == AppStateStatusCodes.STATUS_OK) {
 		    			if (sData != 0)
 		    				GGooglePlay.onStateDeleted(stateKey, sData);
 		    		}
@@ -620,11 +620,11 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		    			if (sData != 0)
 		    			{
 		    				String error = "unknown error";
-		    				if(statusCode == AppStateClient.STATUS_CLIENT_RECONNECT_REQUIRED)
+		    				if(statusCode == AppStateStatusCodes.STATUS_CLIENT_RECONNECT_REQUIRED)
 		    				{
 		    					error = "need to reconnect client";
 		    				}
-		    				else if(statusCode == AppStateClient.STATUS_NETWORK_ERROR_OPERATION_FAILED)
+		    				else if(statusCode == AppStateStatusCodes.STATUS_NETWORK_ERROR_OPERATION_FAILED)
 		    				{
 		    					error = "could not connect server";
 		    				}
@@ -724,7 +724,13 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     		}
     		else
     		{
-    			Games.RealTimeMultiplayer.sendUnreliableMessageToAll(mHelper.getApiClient(), message, currentRoom.getRoomId());
+    			List<String> receipients = new ArrayList<String>();
+    			for (Participant p : mParticipants) {
+    				if (!p.getParticipantId().equals(mMyId)) {
+    					receipients.add(p.getParticipantId());
+    				}
+    			}
+    			Games.RealTimeMultiplayer.sendUnreliableMessage(mHelper.getApiClient(), message, currentRoom.getRoomId(), receipients);
     		}
     	}
     }
@@ -762,7 +768,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		        public void onResult(LoadPlayerScoreResult result) {
 		    		if (sData != 0)
 		    		{
-		    			if(result.getStatus().getStatusCode() == GamesClient.STATUS_OK){
+		    			if(result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_OK){
 		    				LeaderboardScore score = result.getScore();
 		    				if(score != null)
 		    					GGooglePlay.onPlayerScore(score.getDisplayRank(), score.getDisplayScore(), (int)(score.getTimestampMillis()/1000), sData);
@@ -832,7 +838,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	@Override
 	public void onJoinedRoom(int statusCode, Room room) {
 		//http://developer.android.com/reference/com/google/android/gms/games/multiplayer/realtime/RoomUpdateListener.html
-		if (statusCode != GamesClient.STATUS_OK) {
+		if (statusCode != GamesStatusCodes.STATUS_OK) {
 			// display error
 			return;  
 		}
@@ -845,7 +851,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	@Override
 	public void onLeftRoom(int statusCode, String roomId) {
 		//http://developer.android.com/reference/com/google/android/gms/games/multiplayer/realtime/RoomUpdateListener.html
-		if (statusCode != GamesClient.STATUS_OK) {
+		if (statusCode != GamesStatusCodes.STATUS_OK) {
 			// display error
 			return;  
 		}
@@ -857,7 +863,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	@Override
 	public void onRoomConnected(int statusCode, Room room) {
 		//http://developer.android.com/reference/com/google/android/gms/games/multiplayer/realtime/RoomUpdateListener.html
-		if (statusCode != GamesClient.STATUS_OK) {
+		if (statusCode != GamesStatusCodes.STATUS_OK) {
             return;
         }
         updateRoom(room);
@@ -868,7 +874,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	@Override
 	public void onRoomCreated(int statusCode, Room room) {
 		//http://developer.android.com/reference/com/google/android/gms/games/multiplayer/realtime/RoomUpdateListener.html
-		if (statusCode != GamesClient.STATUS_OK) {
+		if (statusCode != GamesStatusCodes.STATUS_OK) {
 			// display error
 			return;  
 		}
