@@ -843,6 +843,10 @@ public class GameHelper implements GoogleApiClient.ConnectionCallbacks,
             debugLog("We're already expecting the result of a previous resolution.");
             return;
         }
+        if (mActivity == null) {
+        	debugLog("Ignoring attempt to resolve connection result without an active Activity.");
+        	return;
+        }
 
         debugLog("resolveConnectionResult: trying to resolve result: "
                 + mConnectionResult);
@@ -855,7 +859,7 @@ public class GameHelper implements GoogleApiClient.ConnectionCallbacks,
                 mExpectingResolution = true;
                 mConnectionResult.startResolutionForResult(mActivity,
                         RC_RESOLVE);
-            } catch (SendIntentException e) {
+            } catch (Exception e) {
                 // Try connecting again
                 debugLog("SendIntentException, so connecting again.");
                 connect();

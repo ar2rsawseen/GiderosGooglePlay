@@ -398,6 +398,9 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     }
     
     static public void loadScores(String id, int span, int collection, int maxResults ){
+    	if(maxResults > 25){
+			maxResults = 25;
+		}
     	if(mHelper != null && mHelper.isSignedIn())
     	{
     		PendingResult<LoadScoresResult> result = Games.Leaderboards.loadTopScores(mHelper.getApiClient(), id, span, collection, maxResults);
@@ -417,7 +420,8 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		    					LeaderboardScore l = scores.get(i);
 		    					Bundle map = new Bundle();
 		    					map.putString("rank", l.getDisplayRank());
-		    					map.putString("score", l.getDisplayScore());
+		    					map.putString("formatScore", l.getDisplayScore());
+		    					map.putLong("score", l.getRawScore());
 		    					map.putString("name", l.getScoreHolderDisplayName());
 		    					map.putString("playerId", l.getScoreHolder().getPlayerId());
 		    					map.putInt("timestamp", (int)(l.getTimestampMillis()/1000));
@@ -434,6 +438,9 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
     }
     
     static public void loadPlayerScores(String id, int span, int collection, int maxResults ){
+    	if(maxResults > 25){
+			maxResults = 25;
+		}
     	if(mHelper != null && mHelper.isSignedIn())
     	{
     		PendingResult<LoadScoresResult> result = Games.Leaderboards.loadPlayerCenteredScores(mHelper.getApiClient(), id, span, collection, maxResults);
@@ -453,7 +460,8 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		    					LeaderboardScore l = scores.get(i);
 		    					Bundle map = new Bundle();
 		    					map.putString("rank", l.getDisplayRank());
-		    					map.putString("score", l.getDisplayScore());
+		    					map.putString("formatScore", l.getDisplayScore());
+		    					map.putLong("score", l.getRawScore());
 		    					map.putString("name", l.getScoreHolderDisplayName());
 		    					map.putString("playerId", l.getScoreHolder().getPlayerId());
 		    					map.putInt("timestamp", (int)(l.getTimestampMillis()/1000));
@@ -771,9 +779,9 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 		    			if(result.getStatus().getStatusCode() == GamesStatusCodes.STATUS_OK){
 		    				LeaderboardScore score = result.getScore();
 		    				if(score != null)
-		    					GGooglePlay.onPlayerScore(score.getDisplayRank(), score.getDisplayScore(), (int)(score.getTimestampMillis()/1000), sData);
+		    					GGooglePlay.onPlayerScore(score.getDisplayRank(), score.getDisplayScore(), score.getRawScore(), (int)(score.getTimestampMillis()/1000), sData);
 		    				else
-		    					GGooglePlay.onPlayerScore("0", "0", 0, sData);
+		    					GGooglePlay.onPlayerScore("0", "0", 0, 0, sData);
 		    			}
 		    		}
 		        }
@@ -990,7 +998,7 @@ RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener
 	private static native void onScoreSubmitted(long data);
 	private static native void onAchievementsLoaded(Object arr, long data);
 	private static native void onLeaderboardScoresLoaded(String id, String name, Object scores, long data);
-	private static native void onPlayerScore(String rank, String score, int timestamp, long data);
+	private static native void onPlayerScore(String rank, String formatscore, long score, int timestamp, long data);
 	private static native void onPlayerImage(String id, String path, long data);
 	
 	private static native void onStateLoaded(int key, byte[] state, int fresh, long data);
